@@ -31,6 +31,9 @@ function lg_activate_plugin() {
         `quiz_id` INT NOT NULL,
         `name` VARCHAR(45) NOT NULL,
         `order` INT NOT NULL,
+        `responses_type` ENUM('Texto', 'Valor') NOT NULL,
+        `high_score` INT,
+        `low_score` INT,
         PRIMARY KEY (`section_id`),
         FOREIGN KEY (`quiz_id`) REFERENCES {$wpdb->prefix}lg_quizzes(`quiz_id`) ON DELETE CASCADE
     );";
@@ -39,14 +42,13 @@ function lg_activate_plugin() {
     // Crear Tabla Categorías
     $sql_lg_categories = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_categories (
         `category_id` INT NOT NULL AUTO_INCREMENT,
+        `section_id` INT NOT NULL,
         `name` VARCHAR(45) NOT NULL,
-        `high_score` INT NOT NULL,
-        `medium_score` INT NOT NULL,
-        `low_score` INT NOT NULL,
         `title_result` VARCHAR(100) NOT NULL,
         `subtitle_result` VARCHAR(100) NOT NULL,
         `text_result` TEXT NOT NULL,
-        PRIMARY KEY (`category_id`)
+        PRIMARY KEY (`category_id`),
+        FOREIGN KEY (`section_id`) REFERENCES {$wpdb->prefix}lg_sections(`section_id`) ON DELETE CASCADE,
     );";
     $wpdb->query($sql_lg_categories);
 
@@ -56,7 +58,7 @@ function lg_activate_plugin() {
         `section_id` INT NOT NULL,
         `category_id` INT NOT NULL,
         `question` VARCHAR(255) NOT NULL,
-        `type` ENUM('sí', 'tal vez', 'no') NOT NULL,
+        `order` INT NOT NULL,
         PRIMARY KEY (`question_id`),
         FOREIGN KEY (`section_id`) REFERENCES {$wpdb->prefix}lg_sections(`section_id`) ON DELETE CASCADE,
         FOREIGN KEY (`category_id`) REFERENCES {$wpdb->prefix}lg_categories(`category_id`) ON DELETE CASCADE
@@ -143,6 +145,16 @@ function lg_create_admin_menu() {
         'post_section_page' // Function to display the submenu page content
     );
 
+    // Página de preguntas
+    add_submenu_page(
+        null, // No se muestra en el menú
+        'Preguntas', // Page title
+        'Preguntas', // Submenu title
+        'manage_options', // Capability
+        'questions', // Submenu slug
+        'questions_page' // Function to display the submenu page content
+    );
+
 }
 
 // Function to display main menu page content
@@ -164,4 +176,28 @@ function post_section_page() {
     include plugin_dir_path(__FILE__).'admin/section/post_section.php';
 }
 
+// Función para mostrar el contenido de la página de preguntas
+function questions_page() {
+    include plugin_dir_path(__FILE__).'admin/questions/questions.php';
+}
+
 add_action('admin_menu', 'lg_create_admin_menu');
+
+
+// Función para encolar el CSS del plugin
+function lg_enqueue_css() {
+    // Registrar el archivo CSS
+    wp_register_style(
+        'mentess-admin-css', // Handle del CSS
+        plugin_dir_url(__FILE__) . 'admin/css/mentess-admin.css', // Ruta al archivo CSS
+        array(), // Dependencias (puede ser un array vacío si no hay dependencias)
+        '1.0.0', // Versión del CSS
+        'all' // Media
+    );
+    
+    // Encolar el archivo CSS
+    wp_enqueue_style('mentess-admin-css');
+}
+
+// Hook para encolar el CSS en el área de administración
+add_action('admin_enqueue_scripts', 'lg_enqueue_css');

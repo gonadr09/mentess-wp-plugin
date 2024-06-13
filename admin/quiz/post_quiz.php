@@ -1,10 +1,61 @@
 <?php
     global $wpdb;
+
+    // Peticiones POST
+    if (isset($_POST['save_quiz'])) {
+        $quiz_id_post = !empty($_POST['quiz_id']) ? intval($_POST['quiz_id']) : null;
+        $name_post = sanitize_text_field($_POST['name']);
+        $shortcode_post = sanitize_text_field($_POST['shortcode']);
+        $is_active_post = isset($_POST['is_active']) ? 1 : 0;
+
+        $errors = false;
+
+        $data_prepared = [
+            'name' => $name_post,
+            'shortcode' => $shortcode_post,
+            'is_active' => $is_active_post,
+        ];
+
+        $format = ['%s', '%s', '%d'];
+        
+        if ($quiz_id_post) {
+            // Actualizar sección existente
+            $result = $wpdb->update(
+                "{$wpdb->prefix}lg_quizzes",
+                $data_prepared,
+                ['quiz_id' => $quiz_id_post],
+                $format,
+                ['%d']
+            );
+        } else {
+            // Insertar nueva sección
+            $result = $wpdb->insert("{$wpdb->prefix}lg_quizzes", $data_prepared, $format);
+        }
+
+        if ($result === false) {
+            $error_messages[] = $wpdb->last_error;
+            $error_message_text = implode('<br>', $error_messages);
+            $message = '
+                <div id="message" class="notice error">
+                    <p><strong>Hubo un error al guardar la encuesta:</strong></p>
+                    <p>' . $error_message_text . '</p>
+                </div>
+            ';
+        } else {
+            $message = '
+            <div id="message" class="notice updated">
+                <p><strong>Encuesta guardada correctamente.</strong></p>
+            </div>
+        ';
+        }
+    }
+
+    // Peticiones GET
     $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
     $name = '';
     $shortcode = '';
     $is_active = '';
-    $cheked = '';
+    $checked = '';
     $title = 'Agregar';
 
     if ($id > 0) {
@@ -15,7 +66,7 @@
             $name = $quiz['name'];
             $shortcode = $quiz['shortcode'];
             $is_active = $quiz['is_active'];
-            $cheked = $quiz['is_active'] ? "checked" : "";
+            $checked = $quiz['is_active'] ? "checked" : "";
             $title = "Editar";
         }
     }
@@ -23,9 +74,12 @@
 
 <div class='wrap'>
     <h1 id='quiz-title'><?php echo esc_attr($title); ?> encuesta</h1>
-
-    <div id='ajax-response'></div>
-
+    <hr class="wp-header-end"><br>
+    <?php 
+        if (!empty($message)) {
+            echo $message;
+        }
+    ?>
     <form method='post' name='quiz-post' id='quiz-post' class='validate' novalidate='novalidate'>
         <input name='action' type='hidden' value='quiz-post'>
         <?php if ($id > 0) : ?>
@@ -44,7 +98,7 @@
                 <tr class='form-field'>
                     <th scope='row'><label for='is_active'>Activo</label></th>
                     <td>
-                        <input type='checkbox' name='is_active' id='is_active' value='<?php echo esc_attr($is_active); ?>' <?php echo esc_attr($cheked); ?>>
+                        <input type='checkbox' name='is_active' id='is_active' <?php echo esc_attr($checked); ?>>
                         <label for='is_active'></label>
                     </td>
                 </tr>

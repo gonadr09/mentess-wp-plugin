@@ -1,6 +1,13 @@
 <?php
     global $wpdb;
 
+    // Eliminar sección
+    if (isset($_POST['delete-quiz-submit'])) {
+        $delete_quiz_id = intval($_POST['delete-quiz-id']);
+        $wpdb->delete("{$wpdb->prefix}lg_quizzes", array('quiz_id' => $delete_quiz_id), array('%d'));
+    }
+
+    // Obtener resultados
     $quiz_list = $wpdb->get_results("
         SELECT * FROM {$wpdb->prefix}lg_quizzes
     ", ARRAY_A);
@@ -43,6 +50,7 @@
                 <th scope="col" id="name" class="manage-column column-primary" abbr="name">Título</th>
                 <th scope="col" id="shortcode" class="manage-column" abbr="shortcode">Shortcode</th>
                 <th scope="col" id="is_active" class="manage-column" abbr="is_active">Activo</th>
+                <th scope="col" id="actions" class="manage-column" abbr="Acciones">Acciones</th>
                 </th>
             </tr>
         </thead>
@@ -71,16 +79,44 @@
                                 </div>
                                 <button type='button' class='toggle-row'><span class='screen-reader-text'>Show more details</span></button>
                             </td>
-                            <td class='' data-colname='Shortcode:'>$shortcode</td>
+                            <td class='' data-colname='Shortcode:'>[$shortcode]</td>
                             <td class='' data-colname='Activo:'>";
 
                     if ($is_active > 0) {
-                        echo "<span class='dashicons dashicons-yes-alt'></span></td></tr>";
+                        echo "<span class='dashicons dashicons-yes-alt' style='color: green'></span></td>";
                     } else {
-                        echo "<span class='dashicons dashicons-no'></span></td></tr>";
+                        echo "<span class='dashicons dashicons-dismiss' style='color: #b32d2e'></span></td>";
                     }
+                    echo "
+                        <td>
+                            <div style='display: flex; gap: 10px'>
+                                <a href='admin.php?page=stadistics&quiz-id=$id' class='button button-secondary' aria-label='Resultados'>Resultados</a>
+                                <form method='post' name='delete-question-form' id='delete-question-form' class='validate' novalidate='novalidate'>
+                                    <input name='delete-quiz-id' type='hidden' value='$id'>
+                                    <input type='hidden' name='delete-quiz-submit' value='Eliminar'>
+                                    <button type='button' data-delete-quiz class='button delete-button'>Eliminar</button>
+                                </form>
+                            </div>
+                        </td>
+                    ";
                 }
             ?>
         </tbody>
     </table>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteSectionButtons = document.querySelectorAll('[data-delete-quiz]');
+        deleteSectionButtons.forEach(deleteSectionButton => {
+            deleteSectionButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                const response = confirm("¿Está seguro que desea eliminar la encuesta?\nEsta acción borrará las secciones, las preguntas y respuestas vinculadas a ella");
+                if (response) {
+                    const form = deleteSectionButton.closest('form');
+                    form.submit();
+                }
+            });
+        });
+    });
+</script>
