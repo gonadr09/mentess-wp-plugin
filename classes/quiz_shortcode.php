@@ -26,9 +26,24 @@
 
         public function get_questions($section_id) {
             global $wpdb;
-            $table = "{$wpdb->prefix}lg_questions";
-            $query = $wpdb->prepare("SELECT * FROM $table WHERE section_id = %d ORDER BY `order`", $section_id);
+            $query = $wpdb->prepare("
+                SELECT 
+                    q.question_id,
+                    q.question,
+                    q.order,
+                    q.response_type_id,
+                    rt.response_type,
+                    ro.response_option_id,
+                    ro.response_text,
+                    ro.response_value
+                FROM {$wpdb->prefix}lg_questions q
+                LEFT JOIN {$wpdb->prefix}lg_responses_type rt ON q.response_type_id = rt.response_type_id
+                LEFT JOIN {$wpdb->prefix}lg_response_options ro ON rt.response_type_id = ro.response_type_id
+                WHERE q.section_id = %d
+                ORDER BY q.order
+            ", $section_id);
             $data = $wpdb->get_results($query,ARRAY_A);
+
             if(empty($data)){
                 $data = array();
             }
@@ -55,7 +70,16 @@
             return $html;
         }
 
-        function from_input($question_id, $question, $order, $response_type){
+        function from_input($value){
+            $question_id = $value['question_id'];
+            $question = $value['question'];
+            $order = $value['order'];
+            $response_type_id = $value['response_type_id'];
+            $response_type = $value['response_type'];
+            $response_option_id = $value['response_option_id'];
+            $response_text = $value['response_text'];
+            $response_value = $value['response_value'];
+
             $html = "";
             if ($response_type == "select"){
                 $html = "
@@ -69,6 +93,13 @@
                         </select>
                     </div><br>
                 ";
+            } elseif ($response_text == 'number') {
+                $html = "
+                <div class='form-group'>
+                    <label for='$question_id' class='form-label'>$order) $question</label>
+                    <input type='number' class='form-control' name='$question_id' id='$question_id' required>
+                </div><br>
+            ";
             } else {
                 $html = "
                     <div class='form-group'>
@@ -103,12 +134,7 @@
                 $html_questions = "";
                 $questions_list = $this->get_questions($section_id);
                 foreach ($questions_list as $key => $value) {
-                    $question_id = $value['question_id'];
-                    $question = $value['question'];
-                    $order = $value['order'];
-                    $response_type = $value['response_type'];
-                    
-                    $html_questions .= $this->from_input($question_id, $question, $order, $response_type);
+                    $html_questions .= $this->from_input($value);
                 }
 
                 $html_sections .= $html_section_begin;

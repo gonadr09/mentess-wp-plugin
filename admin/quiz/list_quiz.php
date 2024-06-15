@@ -34,7 +34,6 @@
         <li class="auto-update-disabled"><a href="plugins.php?plugin_status=auto-update-disabled">Desactivados <span class="count">(2)</span></a></li>
     </ul>
 
- 
     <form class="search-form search-plugins" method="get">
         <p class="search-box">
             <label class="screen-reader-text" for="plugin-search-input">Buscar</label>

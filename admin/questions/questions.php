@@ -33,17 +33,17 @@
             $question = sanitize_text_field($_POST['question'][$question_count]);
             $question_order = intval($_POST['question_order'][$question_count]);
             $question_category = intval($_POST['question_category'][$question_count]);
-            $response_type = sanitize_text_field($_POST['response_type'][$question_count]);
+            $response_type_id = intval($_POST['response_type_id'][$question_count]);
 
             $data_prepared = [
                 'section_id' => $section_id,
                 'category_id' => $question_category,
                 'question' => $question,
                 'order' => $question_order,
-                'response_type' => $response_type
+                'response_type_id' => $response_type_id
             ];
 
-            $format = ['%d', '%d', '%s', '%d', '%s'];
+            $format = ['%d', '%d', '%s', '%d', '%d'];
             
             if ($question_id) {
                 // Actualizar pregunta existente
@@ -96,17 +96,23 @@
         $section = $wpdb->get_row($query_section, ARRAY_A);
 
         $query_questions = $wpdb->prepare("
-            SELECT q.question_id, q.question, q.order, q.category_id, q.response_type, c.name AS category_name
+            SELECT q.question_id, q.question, q.order, q.category_id, q.response_type_id, c.name AS category_name, t.name as response_type_name
             FROM {$wpdb->prefix}lg_questions q
-            INNER JOIN {$wpdb->prefix}lg_categories c ON q.category_id = c.category_id
+            LEFT JOIN {$wpdb->prefix}lg_categories c ON q.category_id = c.category_id
+            LEFT JOIN {$wpdb->prefix}lg_responses_type t ON q.response_type_id = t.response_type_id
             WHERE q.section_id = %d
             ORDER BY q.order ASC
         ", $section_id);
         $questions_of_section = $wpdb->get_results($query_questions, ARRAY_A);
 
         $categories_list = $wpdb->get_results("
-            SELECT * FROM {$wpdb->prefix}lg_categories
+            SELECT * FROM {$wpdb->prefix}lg_categories WHERE section_id = $section_id
         ", ARRAY_A);
+
+        $responses_type_list = $wpdb->get_results("
+            SELECT * FROM {$wpdb->prefix}lg_responses_type
+        ", ARRAY_A);
+
     } else {
         $section_id = 0;
     };
@@ -151,9 +157,9 @@
                             </label>
                         </td>
                         <th scope="col" id="question" class="manage-column column-primary" abbr="Pregunta">Pregunta</th>
+                        <th scope="col" id="order" class="manage-column" abbr="Tipo respuesta">Tipo respuesta</th>
                         <th scope="col" id="order" class="manage-column column-comments" abbr="Orden">Orden</th>
-                        <th scope="col" id="order" class="manage-column" abbr="Tipo respuesta" style="width: 167px">Tipo respuesta</th>
-                        <th scope="col" id="category" class="manage-column" abbr="Categoría" style="width: 260px">Categoría</th>
+                        <th scope="col" id="category" class="manage-column" abbr="Categoría">Categoría</th>
                         <th scope="col" id="actions" class="manage-column column-author" abbr="is_active">Acciones</th>
                         </th>
                     </tr>
@@ -167,10 +173,8 @@
                             $question = $value['question'];
                             $order = $value['order'];
                             $category_name = $value['category_name'];
-                            $response_type = $value['response_type'];
-
-                            $response_text_selected = $response_type == 'text' ? 'selected' : '';
-                            $response_select_selected = $response_type == 'select' ? 'selected' : '';
+                            $response_type_id = $value['response_type_id'];
+                            $response_type_name = $value['response_type_name'];
 
                             echo "
                                 <tr class='form-required'>
@@ -189,16 +193,26 @@
                                         <button type='button' class='toggle-row'><span class='screen-reader-text'>Mostrar más detalles</span></button>
                                     </td>
 
-                                    <td scope='row'>
-                                        <input type='number' class='large-text' name='question_order[]' value='$order' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off'>
+                                    <td scope='row' data-colname='Tipo respuesta:'>
+                                        <select name='response_type_id[]'>
+                                            <option value=''>-- Elige una opción --</option>
+                                            ";
+
+                                            foreach ($responses_type_list as $key => $value) {
+                                                $option_response_type_id = $value['response_type_id'];
+                                                $option_response_type_name = $value['name'];
+                                                $selected = $option_response_type_id == $response_type_id ? 'selected' : '';
+                                                echo "
+                                                    <option value='$option_response_type_id' $selected>$option_response_type_name</option>
+                                                ";                                
+                                            }
+                                            
+                                        echo "
+                                        </select>
                                     </td>
 
-                                    <td scope='row' data-colname='Tipo respuesta:'>
-                                        <select name='response_type[]'>
-                                            <option value=''>-- Elige una opción --</option>
-                                            <option value='text' $response_text_selected>text</option>
-                                            <option value='select' $response_select_selected>select</option>
-                                        </select>
+                                    <td scope='row' data-colname='Order:'>
+                                        <input type='number' class='large-text' name='question_order[]' value='$order' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off'>
                                     </td>
 
                                     <td scope='row' data-colname='Categoría:'>                  
@@ -254,22 +268,28 @@
                         <button type='button' class='toggle-row'><span class='screen-reader-text'>Show more details</span></button>
                     </td>
 
-                    <td scope="row" data-colname='Orden:'>
-                        <input type="number" class="large-text" name="question_order[]" aria-required="true" autocapitalize="none" autocorrect="off" autocomplete="off">
+                    <td scope='row' data-colname='Tipo respuesta:'>
+                        <select name='response_type_id[]'>
+                            <option value=''>-- Elige una opción --</option>
+                            <?php
+                                foreach ($responses_type_list as $key => $value) {
+                                    $option_response_type_id = $value['response_type_id'];
+                                    $option_response_type_name = $value['name'];
+                                    echo "
+                                        <option value='$option_response_type_id'>$option_response_type_name</option>
+                                    ";
+                                };
+                            ?>
+                        </select>
                     </td>
 
-                    <td scope='row' data-colname='Tipo respuesta:'>
-                        <select name='response_type[]'>
-                            <option value=''>-- Elige una opción --</option>
-                            <option value='text'>text</option>
-                            <option value='select'>select</option>
-                        </select>
+                    <td scope="row" data-colname='Orden:'>
+                        <input type="number" class="large-text" name="question_order[]" aria-required="true" autocapitalize="none" autocorrect="off" autocomplete="off">
                     </td>
 
                     <td scope="row" data-colname='Categoría:'>                  
                         <select name="question_category[]">
                             <option value="">-- Elige una opción --</option>
-        
                             <?php
                                 foreach ($categories_list as $key => $value) {
                                     $option_category_id = $value['category_id'];
@@ -279,7 +299,6 @@
                                     ";
                                 };
                             ?>
-
                         </select>
                     </td>
 

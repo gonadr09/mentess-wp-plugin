@@ -11,7 +11,7 @@
     $category_list = $wpdb->get_results("
         SELECT c.category_id, c.name AS category_name, c.title_result, c.subtitle_result, c.text_result, s.section_id, s.name AS section_name
         FROM {$wpdb->prefix}lg_categories c
-        INNER JOIN {$wpdb->prefix}lg_sections s ON c.section_id = s.section_id
+        LEFT JOIN {$wpdb->prefix}lg_sections s ON c.section_id = s.section_id
     ", ARRAY_A);
 
     if(empty($category_list)) {
@@ -69,9 +69,9 @@
                                 </label>
                             </th>
                             <td class='column-primary has-row-actions' data-colname='name'>
-                                <strong><a href='admin.php?page=post_section&id=$category_id' class='row-title'>$category_name</a></strong>
+                                <strong><a href='admin.php?page=post_category&id=$category_id' class='row-title'>$category_name</a></strong>
                                 <div class='row-actions'>
-                                    <span class='edit'><a href='admin.php?page=post_section&id=$category_id' aria-label='Editar'>Editar</a> | </span>
+                                    <span class='edit'><a href='admin.php?page=post_category&id=$category_id' aria-label='Editar'>Editar</a> | </span>
                                     <span class='trash'><a href='#' class='submitdelete' aria-label='Mover “$category_name ” a la papelera'>Eliminar</a> | </span>
                                 </div>
                                 <button type='button' class='toggle-row'><span class='screen-reader-text'>Show more details</span></button>

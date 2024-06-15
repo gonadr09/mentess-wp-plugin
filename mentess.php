@@ -46,7 +46,7 @@ function lg_activate_plugin() {
     $sql_lg_categories = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_categories (
         `category_id` INT NOT NULL AUTO_INCREMENT,
         `section_id` INT NOT NULL,
-        `name` VARCHAR(45) NOT NULL,
+        `name` VARCHAR(100) NOT NULL,
         `title_result` VARCHAR(100) NOT NULL,
         `subtitle_result` VARCHAR(100) NOT NULL,
         `text_result` TEXT NOT NULL,
@@ -59,7 +59,7 @@ function lg_activate_plugin() {
     $sql_lg_responses_type = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_responses_type (
         `response_type_id` INT NOT NULL AUTO_INCREMENT,
         `name` VARCHAR(45) NOT NULL,
-        `response_type` ENUM('text', 'number', 'select', 'checkbox', 'textarea') NOT NULL,
+        `response_type` ENUM('text', 'number', 'select') NOT NULL,
         PRIMARY KEY (`response_type_id`)
     );";
     $wpdb->query($sql_lg_responses_type);
@@ -68,8 +68,8 @@ function lg_activate_plugin() {
     $sql_lg_response_options = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_response_options (
         `response_option_id` INT NOT NULL AUTO_INCREMENT,
         `response_type_id` INT NOT NULL,
-        `name` VARCHAR(45) NOT NULL,
-        `value` INT NOT NULL,
+        `response_text` VARCHAR(255) NOT NULL,
+        `response_value` INT NOT NULL,
         PRIMARY KEY (`response_option_id`),
         FOREIGN KEY (`response_type_id`) REFERENCES {$wpdb->prefix}lg_responses_type(`response_type_id`) ON DELETE CASCADE
     );";
@@ -143,7 +143,7 @@ function lg_create_admin_menu() {
 
     // Agregar encuesta
     add_submenu_page(
-        'mentess', // Parent slug (same as menu slug of the main menu)
+        null, // Parent slug (same as menu slug of the main menu)
         'Agregar encuesta', // Page title
         'Agregar encuesta', // Submenu title
         'manage_options', // Capability
@@ -154,7 +154,7 @@ function lg_create_admin_menu() {
     // Listar secciones
     add_submenu_page(
         'mentess', // Parent slug (same as menu slug of the main menu)
-        'Secciones de la encuesta', // Page title
+        'Secciones', // Page title
         'Secciones', // Submenu title
         'manage_options', // Capability
         'section_list', // Submenu slug
@@ -163,7 +163,7 @@ function lg_create_admin_menu() {
 
     // Agregar secciones
     add_submenu_page(
-        'mentess', // Parent slug (same as menu slug of the main menu)
+        null, // Parent slug (same as menu slug of the main menu)
         'Agregar sección', // Page title
         'Agregar sección', // Submenu title
         'manage_options', // Capability
@@ -184,7 +184,7 @@ function lg_create_admin_menu() {
     // Listar categorias
     add_submenu_page(
         'mentess', // Parent slug (same as menu slug of the main menu)
-        'Categorías de la encuesta', // Page title
+        'Categorías', // Page title
         'Categorías', // Submenu title
         'manage_options', // Capability
         'category_list', // Submenu slug
@@ -193,12 +193,42 @@ function lg_create_admin_menu() {
 
     // Agregar categoria
     add_submenu_page(
-        'mentess', // Parent slug (same as menu slug of the main menu)
+        null, // Parent slug (same as menu slug of the main menu)
         'Agregar categoría', // Page title
         'Agregar categoría', // Submenu title
         'manage_options', // Capability
         'post_category', // Submenu slug
         'post_category_page' // Function to display the submenu page content
+    );
+
+    // Listar tipos de respuesta
+    add_submenu_page(
+        'mentess', // Parent slug (same as menu slug of the main menu)
+        'Tipos de respuesta', // Page title
+        'Tipos de respuesta', // Submenu title
+        'manage_options', // Capability
+        'response_type_list', // Submenu slug
+        'response_type_list_page' // Function to display the submenu page content
+    );
+
+    // Agregar tipos de respuesta
+    add_submenu_page(
+        null, // Parent slug (same as menu slug of the main menu)
+        'Agregar tipo de respuesta', // Page title
+        'Agregar tipo de respuesta', // Submenu title
+        'manage_options', // Capability
+        'post_response_type', // Submenu slug
+        'post_response_type_page' // Function to display the submenu page content
+    );
+
+    // Página de opciones de respuestas
+    add_submenu_page(
+        null, // No se muestra en el menú
+        'Opciones de respuesta', // Page title
+        'Opciones de respuesta', // Submenu title
+        'manage_options', // Capability
+        'response_options', // Submenu slug
+        'response_options_page' // Function to display the submenu page content
     );
 
 }
@@ -229,9 +259,21 @@ function post_category_page() {
     include plugin_dir_path(__FILE__).'admin/category/post_category.php';
 }
 
+function response_type_list_page() {
+    include plugin_dir_path(__FILE__).'admin/responses_type/list_responses_type.php';
+}
+
+function post_response_type_page() {
+    include plugin_dir_path(__FILE__).'admin/responses_type/post_responses_type.php';
+}
+
 // Función para mostrar el contenido de la página de preguntas
 function questions_page() {
     include plugin_dir_path(__FILE__).'admin/questions/questions.php';
+}
+
+function response_options_page() {
+    include plugin_dir_path(__FILE__).'admin/response_options/response_options.php';
 }
 
 add_action('admin_menu', 'lg_create_admin_menu');
