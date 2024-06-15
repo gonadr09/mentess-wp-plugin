@@ -33,15 +33,17 @@
             $question = sanitize_text_field($_POST['question'][$question_count]);
             $question_order = intval($_POST['question_order'][$question_count]);
             $question_category = intval($_POST['question_category'][$question_count]);
+            $response_type = sanitize_text_field($_POST['response_type'][$question_count]);
 
             $data_prepared = [
                 'section_id' => $section_id,
                 'category_id' => $question_category,
                 'question' => $question,
-                'order' => $question_order
+                'order' => $question_order,
+                'response_type' => $response_type
             ];
 
-            $format = ['%d', '%d', '%s', '%d'];
+            $format = ['%d', '%d', '%s', '%d', '%s'];
             
             if ($question_id) {
                 // Actualizar pregunta existente
@@ -94,7 +96,7 @@
         $section = $wpdb->get_row($query_section, ARRAY_A);
 
         $query_questions = $wpdb->prepare("
-            SELECT q.question_id, q.question, q.order, q.category_id, c.name AS category_name
+            SELECT q.question_id, q.question, q.order, q.category_id, q.response_type, c.name AS category_name
             FROM {$wpdb->prefix}lg_questions q
             INNER JOIN {$wpdb->prefix}lg_categories c ON q.category_id = c.category_id
             WHERE q.section_id = %d
@@ -148,9 +150,10 @@
                                 <span class="screen-reader-text">Seleccionar todo</span>
                             </label>
                         </td>
-                        <th scope="col" id="question" class="manage-column column-primary" abbr="name">Pregunta</th>
-                        <th scope="col" id="order" class="manage-column column-comments" abbr="name">Orden</th>
-                        <th scope="col" id="category" class="manage-column" abbr="quiz" style="width: 260px">Categoría</th>
+                        <th scope="col" id="question" class="manage-column column-primary" abbr="Pregunta">Pregunta</th>
+                        <th scope="col" id="order" class="manage-column column-comments" abbr="Orden">Orden</th>
+                        <th scope="col" id="order" class="manage-column" abbr="Tipo respuesta" style="width: 167px">Tipo respuesta</th>
+                        <th scope="col" id="category" class="manage-column" abbr="Categoría" style="width: 260px">Categoría</th>
                         <th scope="col" id="actions" class="manage-column column-author" abbr="is_active">Acciones</th>
                         </th>
                     </tr>
@@ -164,6 +167,10 @@
                             $question = $value['question'];
                             $order = $value['order'];
                             $category_name = $value['category_name'];
+                            $response_type = $value['response_type'];
+
+                            $response_text_selected = $response_type == 'text' ? 'selected' : '';
+                            $response_select_selected = $response_type == 'select' ? 'selected' : '';
 
                             echo "
                                 <tr class='form-required'>
@@ -184,6 +191,14 @@
 
                                     <td scope='row'>
                                         <input type='number' class='large-text' name='question_order[]' value='$order' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off'>
+                                    </td>
+
+                                    <td scope='row' data-colname='Tipo respuesta:'>
+                                        <select name='response_type[]'>
+                                            <option value=''>-- Elige una opción --</option>
+                                            <option value='text' $response_text_selected>text</option>
+                                            <option value='select' $response_select_selected>select</option>
+                                        </select>
                                     </td>
 
                                     <td scope='row' data-colname='Categoría:'>                  
@@ -241,6 +256,14 @@
 
                     <td scope="row" data-colname='Orden:'>
                         <input type="number" class="large-text" name="question_order[]" aria-required="true" autocapitalize="none" autocorrect="off" autocomplete="off">
+                    </td>
+
+                    <td scope='row' data-colname='Tipo respuesta:'>
+                        <select name='response_type[]'>
+                            <option value=''>-- Elige una opción --</option>
+                            <option value='text'>text</option>
+                            <option value='select'>select</option>
+                        </select>
                     </td>
 
                     <td scope="row" data-colname='Categoría:'>                  

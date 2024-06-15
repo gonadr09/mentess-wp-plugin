@@ -12,6 +12,7 @@
         SELECT s.section_id, s.name AS section_name, s.order, s.high_score, s.low_score, q.name AS quiz_name
         FROM {$wpdb->prefix}lg_sections s
         INNER JOIN {$wpdb->prefix}lg_quizzes q ON s.quiz_id = q.quiz_id
+        ORDER BY `order`
     ", ARRAY_A);
 
     if(empty($quiz_list)) {

@@ -1,7 +1,7 @@
 <?php
     global $wpdb;
 
-    // Eliminar sección
+    // Eliminar encuesta
     if (isset($_POST['delete-quiz-submit'])) {
         $delete_quiz_id = intval($_POST['delete-quiz-id']);
         $wpdb->delete("{$wpdb->prefix}lg_quizzes", array('quiz_id' => $delete_quiz_id), array('%d'));
@@ -9,8 +9,13 @@
 
     // Obtener resultados
     $quiz_list = $wpdb->get_results("
-        SELECT * FROM {$wpdb->prefix}lg_quizzes
+        SELECT q.quiz_id, q.name, q.is_active, q.wc_product_id, p.post_title
+        FROM {$wpdb->prefix}lg_quizzes q
+        LEFT JOIN {$wpdb->prefix}posts p ON q.wc_product_id = p.ID
     ", ARRAY_A);
+/*     $quiz_list = $wpdb->get_results("
+        SELECT * FROM {$wpdb->prefix}lg_quizzes
+    ", ARRAY_A); */
 
     if(empty($quiz_list)) {
         $quiz_list = array();
@@ -49,6 +54,7 @@
                 </td>
                 <th scope="col" id="name" class="manage-column column-primary" abbr="name">Título</th>
                 <th scope="col" id="shortcode" class="manage-column" abbr="shortcode">Shortcode</th>
+                <th scope="col" id="product" class="manage-column" abbr="product">Producto</th>
                 <th scope="col" id="is_active" class="manage-column" abbr="is_active">Activo</th>
                 <th scope="col" id="actions" class="manage-column" abbr="Acciones">Acciones</th>
                 </th>
@@ -60,8 +66,9 @@
                 foreach ($quiz_list as $key => $value) {
                     $id = $value['quiz_id'];
                     $name = $value['name'];
-                    $shortcode = $value['shortcode'];
                     $is_active = $value['is_active'];
+                    $wc_product_id = $value['wc_product_id'];
+                    $post_title = $value['post_title'];
                     echo "
                         <tr id='quiz-$id' class=''>
                             <th scope='row' class='check-column'>
@@ -79,7 +86,8 @@
                                 </div>
                                 <button type='button' class='toggle-row'><span class='screen-reader-text'>Show more details</span></button>
                             </td>
-                            <td class='' data-colname='Shortcode:'>[$shortcode]</td>
+                            <td class='' data-colname='Shortcode:'>[QUIZ id='$id']</td>
+                            <td class='' data-colname='Producto:'>($wc_product_id) $post_title</td>
                             <td class='' data-colname='Activo:'>";
 
                     if ($is_active > 0) {

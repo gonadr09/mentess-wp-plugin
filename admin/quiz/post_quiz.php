@@ -5,21 +5,34 @@
     if (isset($_POST['save_quiz'])) {
         $quiz_id_post = !empty($_POST['quiz_id']) ? intval($_POST['quiz_id']) : null;
         $name_post = sanitize_text_field($_POST['name']);
-        $shortcode_post = sanitize_text_field($_POST['shortcode']);
         $is_active_post = isset($_POST['is_active']) ? 1 : 0;
+        $wc_product_id_post = intval($_POST['wc_product_id']);
+        //$shortcode_post = sanitize_text_field($_POST['shortcode']) ? $quiz_id_post : null;
+
+        //print_r($shortcode_post);
+
+/* 
+        if ($shortcode_post == null) {        
+            $query = "SELECT quiz_id FROM {$wpdb->prefix}lg_quizzes ORDER BY quiz_id DESC limit 1";
+            $result = $wpdb->get_results($query,ARRAY_A);
+            $nextId = $result[0]['quiz_id'] + 1;
+            $shortcode_post = "[QUIZ id='$nextId']";
+        } else {
+            $shortcode_post = "[QUIZ id='$shortcode_post']";
+        } */
 
         $errors = false;
 
         $data_prepared = [
             'name' => $name_post,
-            'shortcode' => $shortcode_post,
+            'wc_product_id' => $wc_product_id_post,
             'is_active' => $is_active_post,
         ];
 
-        $format = ['%s', '%s', '%d'];
+        $format = ['%s', '%d', '%d'];
         
         if ($quiz_id_post) {
-            // Actualizar sección existente
+            // Actualizar encuesta existente
             $result = $wpdb->update(
                 "{$wpdb->prefix}lg_quizzes",
                 $data_prepared,
@@ -28,7 +41,7 @@
                 ['%d']
             );
         } else {
-            // Insertar nueva sección
+            // Insertar nueva encuesta
             $result = $wpdb->insert("{$wpdb->prefix}lg_quizzes", $data_prepared, $format);
         }
 
@@ -52,21 +65,39 @@
 
     // Peticiones GET
     $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+    $quiz_id = '';
     $name = '';
-    $shortcode = '';
     $is_active = '';
     $checked = '';
+    $wc_product_id = '';
+    $post_title = '';
     $title = 'Agregar';
 
+    $product_list = $wpdb->get_results("
+        SELECT ID, post_title, post_type FROM {$wpdb->prefix}posts WHERE post_type = 'product'
+    ", ARRAY_A);
+
+    if(empty($quiz_list)) {
+        $quiz_list = array();
+    }
+
     if ($id > 0) {
-        $query = $wpdb->prepare("SELECT * FROM {$wpdb->prefix}lg_quizzes WHERE `quiz_id` = %d", $id);
+        $query = $wpdb->prepare("
+        SELECT q.quiz_id, q.name, q.is_active, q.wc_product_id, p.post_title
+        FROM {$wpdb->prefix}lg_quizzes q
+        LEFT JOIN {$wpdb->prefix}posts p ON q.wc_product_id = p.ID
+        WHERE q.quiz_id = %d
+        ", $id);
+
         $quiz = $wpdb->get_row($query, ARRAY_A);
     
         if ($quiz) {
+            $quiz_id = $quiz['quiz_id'];
             $name = $quiz['name'];
-            $shortcode = $quiz['shortcode'];
             $is_active = $quiz['is_active'];
             $checked = $quiz['is_active'] ? "checked" : "";
+            $wc_product_id = $quiz['wc_product_id'];
+            $post_title = $quiz['post_title'];
             $title = "Editar";
         }
     }
@@ -91,9 +122,33 @@
                     <th scope='row'><label for='name'>Nombre</label></th>
                     <td><input class='regular-text' name='name' type='text' id='name' value='<?php echo esc_attr($name); ?>' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off' maxlength='60'></td>
                 </tr>
-                <tr class='form-required'>
-                    <th scope='row'><label for='shortcode'>Shortcode</label></th>
-                    <td><input class='regular-text' name='shortcode' type='text' id='shortcode' value='<?php echo esc_attr($shortcode); ?>'></td>
+                <?php
+                    if ($quiz_id)
+                        echo "
+                        <tr class='form-required'>
+                            <th scope='row'><label for='shortcode'>Shortcode</label></th>
+                            <td><p>[QUIZ id='$quiz_id']</p></td>
+                        </tr>
+                    ";
+                ?>
+                <tr class='form-field'>
+                    <th scope='row'><label for='wc_product_id'>Producto</label></th>
+                    <td>
+                        <select name="wc_product_id" id="wc_product_id">
+                            <option value=''>-- Elige una opción --</option>
+                            <?php
+                                
+                                foreach ($product_list as $key => $value) {
+                                    $option_product_id = $value['ID'];
+                                    $option_product_name = $value['post_title'];
+                                    $selected = $option_product_id == $wc_product_id ? 'selected' : '';
+                                    echo "
+                                        <option value='$option_product_id' $selected>(ID: $option_product_id) $option_product_name</option>
+                                    ";                                
+                                }
+                            ?>
+                        </select>
+                    </td>
                 </tr>
                 <tr class='form-field'>
                     <th scope='row'><label for='is_active'>Activo</label></th>
@@ -104,6 +159,9 @@
                 </tr>
             </tbody>
         </table>
-        <p class='submit'><input type='submit' name='save_quiz' id='save_quiz' class='button button-primary' value='<?php echo ($id > 0) ? "Actualizar encuesta" : "Agregar encuesta"; ?>'></p>
+        <p class='submit'>
+            <input type='submit' name='save_quiz' id='save_quiz' class='button button-primary' value='<?php echo ($id > 0) ? "Actualizar encuesta" : "Agregar encuesta"; ?>'>
+            <a href="admin.php?page=mentess" class="button button-secondary">Volver</a>
+        </p>
     </form>
 </div>

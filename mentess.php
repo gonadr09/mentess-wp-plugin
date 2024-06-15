@@ -12,6 +12,9 @@
  * Domain Path:         /languages 
 */
 
+// Requires
+require_once dirname(__FILE__) . '/classes/quiz_shortcode.php';
+
 function lg_activate_plugin() {
     global $wpdb;
 
@@ -19,9 +22,10 @@ function lg_activate_plugin() {
     $sql_lg_quizzes = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_quizzes (
         `quiz_id` INT NOT NULL AUTO_INCREMENT,
         `name` VARCHAR(45) NOT NULL,
-        `shortcode` VARCHAR(45) NOT NULL,
         `is_active` BOOLEAN DEFAULT FALSE,
-        PRIMARY KEY (`quiz_id`)
+        `wc_product_id` BIGINT(20) UNSIGNED
+        PRIMARY KEY (`quiz_id`),
+        FOREIGN KEY (`wc_product_id`) REFERENCES {$wpdb->prefix}posts(`ID`) ON DELETE CASCADE
     );";
     $wpdb->query($sql_lg_quizzes);
 
@@ -31,7 +35,6 @@ function lg_activate_plugin() {
         `quiz_id` INT NOT NULL,
         `name` VARCHAR(45) NOT NULL,
         `order` INT NOT NULL,
-        `responses_type` ENUM('Texto', 'Valor') NOT NULL,
         `high_score` INT,
         `low_score` INT,
         PRIMARY KEY (`section_id`),
@@ -48,9 +51,29 @@ function lg_activate_plugin() {
         `subtitle_result` VARCHAR(100) NOT NULL,
         `text_result` TEXT NOT NULL,
         PRIMARY KEY (`category_id`),
-        FOREIGN KEY (`section_id`) REFERENCES {$wpdb->prefix}lg_sections(`section_id`) ON DELETE CASCADE,
+        FOREIGN KEY (`section_id`) REFERENCES {$wpdb->prefix}lg_sections(`section_id`) ON DELETE CASCADE
     );";
     $wpdb->query($sql_lg_categories);
+
+    // Crear Tabla Tipo de Respuestas
+    $sql_lg_responses_type = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_responses_type (
+        `response_type_id` INT NOT NULL AUTO_INCREMENT,
+        `name` VARCHAR(45) NOT NULL,
+        `response_type` ENUM('text', 'number', 'select', 'checkbox', 'textarea') NOT NULL,
+        PRIMARY KEY (`response_type_id`)
+    );";
+    $wpdb->query($sql_lg_responses_type);
+
+    // Crear Tabla Opción de Respuestas
+    $sql_lg_response_options = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_response_options (
+        `response_option_id` INT NOT NULL AUTO_INCREMENT,
+        `response_type_id` INT NOT NULL,
+        `name` VARCHAR(45) NOT NULL,
+        `value` INT NOT NULL,
+        PRIMARY KEY (`response_option_id`),
+        FOREIGN KEY (`response_type_id`) REFERENCES {$wpdb->prefix}lg_responses_type(`response_type_id`) ON DELETE CASCADE
+    );";
+    $wpdb->query($sql_lg_response_options);
 
     // Crear Tabla Preguntas
     $sql_lg_questions = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_questions (
@@ -59,11 +82,14 @@ function lg_activate_plugin() {
         `category_id` INT NOT NULL,
         `question` VARCHAR(255) NOT NULL,
         `order` INT NOT NULL,
+        `response_type_id` INT NOT NULL,
         PRIMARY KEY (`question_id`),
         FOREIGN KEY (`section_id`) REFERENCES {$wpdb->prefix}lg_sections(`section_id`) ON DELETE CASCADE,
-        FOREIGN KEY (`category_id`) REFERENCES {$wpdb->prefix}lg_categories(`category_id`) ON DELETE CASCADE
+        FOREIGN KEY (`category_id`) REFERENCES {$wpdb->prefix}lg_categories(`category_id`) ON DELETE CASCADE,
+        FOREIGN KEY (`response_type_id`) REFERENCES {$wpdb->prefix}lg_responses_type(`response_type_id`) ON DELETE CASCADE
     );";
     $wpdb->query($sql_lg_questions);
+
 
     // Crear Tabla Encuesta del Usuario
     $sql_lg_user_quiz = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_user_quiz (
@@ -84,15 +110,15 @@ function lg_activate_plugin() {
         `response_id` INT NOT NULL AUTO_INCREMENT,
         `user_quiz_id` BIGINT(20) UNSIGNED NOT NULL,
         `question_id` INT NOT NULL,
-        `answer` ENUM('sí', 'tal vez', 'no') NOT NULL,
+        `response` VARCHAR(255) NOT NULL,
+        `value` INT,
         `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
         `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`response_id`),
         FOREIGN KEY (`user_quiz_id`) REFERENCES {$wpdb->prefix}users(`ID`) ON DELETE CASCADE,
-        FOREIGN KEY (`question_id`) REFERENCES {$wpdb->prefix}lg_user_quiz(`user_quiz_id`) ON DELETE CASCADE
+        FOREIGN KEY (`question_id`) REFERENCES {$wpdb->prefix}lg_questions(`question_id`) ON DELETE CASCADE
     );";
     $wpdb->query($sql_lg_user_responses);
-    
 }
 
 
@@ -155,6 +181,26 @@ function lg_create_admin_menu() {
         'questions_page' // Function to display the submenu page content
     );
 
+    // Listar categorias
+    add_submenu_page(
+        'mentess', // Parent slug (same as menu slug of the main menu)
+        'Categorías de la encuesta', // Page title
+        'Categorías', // Submenu title
+        'manage_options', // Capability
+        'category_list', // Submenu slug
+        'category_list_page' // Function to display the submenu page content
+    );
+
+    // Agregar categoria
+    add_submenu_page(
+        'mentess', // Parent slug (same as menu slug of the main menu)
+        'Agregar categoría', // Page title
+        'Agregar categoría', // Submenu title
+        'manage_options', // Capability
+        'post_category', // Submenu slug
+        'post_category_page' // Function to display the submenu page content
+    );
+
 }
 
 // Function to display main menu page content
@@ -171,9 +217,16 @@ function section_list_page() {
     include plugin_dir_path(__FILE__).'admin/section/list_section.php';
 }
 
-// Function to display submenu page content
 function post_section_page() {
     include plugin_dir_path(__FILE__).'admin/section/post_section.php';
+}
+
+function category_list_page() {
+    include plugin_dir_path(__FILE__).'admin/category/list_category.php';
+}
+
+function post_category_page() {
+    include plugin_dir_path(__FILE__).'admin/category/post_category.php';
 }
 
 // Función para mostrar el contenido de la página de preguntas
@@ -182,6 +235,39 @@ function questions_page() {
 }
 
 add_action('admin_menu', 'lg_create_admin_menu');
+
+
+
+// Shortcodes
+function show_shortcode($atts){
+    $_quiz_shortcode_instance = new quiz_shortcode;
+    $id = intval($atts['id']); //obtener el id por parametro
+
+    //Programar las acciones del boton
+    if(isset($_POST['btnguardar1'])){
+        $listadePreguntas = $_quiz_shortcode_instance->get_questions($id);
+        $codigo = uniqid();
+        foreach ($listadePreguntas as $key => $value) {
+           $idpregunta = $value['DetalleId'];
+           if(isset($_POST[$idpregunta])){
+               $valortxt = $_POST[$idpregunta];
+               $datos = [
+                   'DetalleId' => $idpregunta,
+                   'Codigo' => $codigo,
+                   'Respuesta' => $valortxt
+               ];
+               $_quiz_shortcode_instance->save_answer($datos);
+           }
+        }
+        return " Encuesta enviada exitosamente";
+    }
+
+    //Imprimir el formulario
+    $html = $_quiz_shortcode_instance->quiz_html_builder($id);
+    return $html;
+}
+
+add_shortcode("QUIZ","show_shortcode");
 
 
 // Función para encolar el CSS del plugin

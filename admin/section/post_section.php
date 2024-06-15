@@ -7,7 +7,7 @@
         $quiz_post = intval($_POST['quiz']);
         $name_post = sanitize_text_field($_POST['name']);
         $order_post = intval($_POST['order']);
-        $responses_type_post = $_POST['responses_type']; // agregar sanitize_text_field
+        //$responses_type_post = $_POST['responses_type']; // agregar sanitize_text_field
         $high_score_post = intval($_POST['high_score']);
         $low_score_post = intval($_POST['low_score']);
 
@@ -17,7 +17,7 @@
             'quiz_id' => $quiz_post,
             'name' => $name_post,
             'order' => $order_post,
-            'responses_type' => $responses_type_post,
+            //'responses_type' => $responses_type_post,
             'high_score' => $high_score_post,
             'low_score' => $low_score_post,
         ];
@@ -63,7 +63,7 @@
     $quiz_id = '';
     $name = '';
     $order = '';
-    $responses_type = '';
+    //$responses_type = '';
     $high_score = '';
     $low_score = '';
     $title = 'Agregar';
@@ -78,7 +78,7 @@
 
     if ($id > 0) {
         $query = $wpdb->prepare("
-            SELECT s.section_id, s.name AS section_name, s.order, s.responses_type, s.high_score, s.low_score, q.quiz_id, q.name AS quiz_name
+            SELECT s.section_id, s.name AS section_name, s.order, s.high_score, s.low_score, q.quiz_id, q.name AS quiz_name
             FROM {$wpdb->prefix}lg_sections s
             INNER JOIN {$wpdb->prefix}lg_quizzes q ON s.quiz_id = q.quiz_id
             WHERE s.section_id = %d
@@ -90,7 +90,7 @@
             $quiz_id = $section['quiz_id'];
             $quiz_name = $section['quiz_name'];
             $order = $section['order'];
-            $responses_type = $section['responses_type'];
+            //$responses_type = $section['responses_type'];
             $high_score = $section['high_score'];
             $low_score = $section['low_score'];
             $title = "Guardar";
@@ -141,22 +141,6 @@
                         </select>
                     </td>
                 </tr>
-                <tr class='form-field'>
-                    <th scope='row'><label for='responses_type'>Tipo de respuestas</label></th>
-                    <td>
-                        <select name="responses_type" id="responses_type">
-                            <option value=''>-- Elige una opción --</option>
-                            <?php
-                                $responses_text_selected = $responses_type == 'Texto' ? 'selected' : '';
-                                $responses_value_selected = $responses_type == 'Valor' ? 'selected' : '';
-                                echo "
-                                    <option value='Texto' $responses_text_selected>Texto</option>
-                                    <option value='Valor' $responses_value_selected>Valor</option>
-                                ";
-                            ?>
-                        </select>
-                    </td>
-                </tr>
                 <tr class='form-required'>
                     <th scope='row'><label for='low_score'>Puntaje menor</label></th>
                     <td><input type="number" class='small-text' name='low_score' type='text' id='low_score' value='<?php echo esc_attr($low_score); ?>'></td>
@@ -177,6 +161,9 @@
             </tbody>
         </table>
         
-        <p class='submit'><input type='submit' name='save-section' id='save-section' class='button button-primary' value='Guardar'></p>
+        <p class='submit'>
+            <input type='submit' name='save-section' id='save-section' class='button button-primary' value='Guardar'>
+            <a href="admin.php?page=section_list" class="button button-secondary">Volver</a>
+        </p>
     </form>
 </div>
