@@ -195,7 +195,7 @@
 
                                     <td scope='row' data-colname='Tipo respuesta:'>
                                         <select name='response_type_id[]'>
-                                            <option value=''>-- Elige una opción --</option>
+                                            <option selected disabled value=''>-- Elige una opción --</option>
                                             ";
 
                                             foreach ($responses_type_list as $key => $value) {
@@ -270,7 +270,7 @@
 
                     <td scope='row' data-colname='Tipo respuesta:'>
                         <select name='response_type_id[]'>
-                            <option value=''>-- Elige una opción --</option>
+                            <option selected disabled value=''>-- Elige una opción --</option>
                             <?php
                                 foreach ($responses_type_list as $key => $value) {
                                     $option_response_type_id = $value['response_type_id'];

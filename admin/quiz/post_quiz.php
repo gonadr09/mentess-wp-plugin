@@ -111,7 +111,7 @@
             echo $message;
         }
     ?>
-    <form method='post' name='quiz-post' id='quiz-post' class='validate' novalidate='novalidate'>
+    <form method='post' name='quiz-post' id='quiz-post' class='validate'>
         <input name='action' type='hidden' value='quiz-post'>
         <?php if ($id > 0) : ?>
             <input name='quiz_id' type='hidden' value='<?php echo esc_attr($id); ?>'>
@@ -120,7 +120,7 @@
             <tbody>
                 <tr class='form-required'>
                     <th scope='row'><label for='name'>Nombre</label></th>
-                    <td><input class='regular-text' name='name' type='text' id='name' value='<?php echo esc_attr($name); ?>' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off' maxlength='60'></td>
+                    <td><input class='regular-text' name='name' type='text' id='name' required value='<?php echo esc_attr($name); ?>' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off' maxlength='60'></td>
                 </tr>
                 <?php
                     if ($quiz_id)
@@ -134,10 +134,9 @@
                 <tr class='form-field'>
                     <th scope='row'><label for='wc_product_id'>Producto</label></th>
                     <td>
-                        <select name="wc_product_id" id="wc_product_id">
-                            <option value=''>-- Elige una opción --</option>
+                        <select name="wc_product_id" id="wc_product_id" required>
+                            <option selected disabled value=''>-- Elige una opción --</option>
                             <?php
-                                
                                 foreach ($product_list as $key => $value) {
                                     $option_product_id = $value['ID'];
                                     $option_product_name = $value['post_title'];

@@ -126,7 +126,7 @@
             }
         ?>
 
-        <form method='post' name='response_opcions-post' id='response_opcions-post' class='validate' novalidate='novalidate'>
+        <form method='post' name='response_opcions-post' id='response_opcions-post' class='validate'>
             
             <input name='response_type_id' type='hidden' value='<?php echo esc_attr($response_type['response_type_id']);?>'>
 
@@ -166,12 +166,12 @@
                                     </th>
 
                                     <td scope='row' class='column-primary'>
-                                        <input type='text' class='large-text' name='response_text[]' value='$response_text' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off'>
+                                        <input type='text' class='large-text' name='response_text[]' required value='$response_text' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off'>
                                         <button type='button' class='toggle-row'><span class='screen-reader-text'>Mostrar más detalles</span></button>
                                     </td>
 
                                     <td scope='row'>
-                                        <input type='number' class='large-text' name='response_value[]' value='$response_value' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off'>
+                                        <input type='number' class='large-text' name='response_value[]' required value='$response_value' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off'>
                                     </td>
 
                                     <td data-colname='Acciones:'>

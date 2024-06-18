@@ -80,7 +80,7 @@
         $query = $wpdb->prepare("
             SELECT s.section_id, s.name AS section_name, s.order, s.high_score, s.low_score, q.quiz_id, q.name AS quiz_name
             FROM {$wpdb->prefix}lg_sections s
-            INNER JOIN {$wpdb->prefix}lg_quizzes q ON s.quiz_id = q.quiz_id
+            LEFT JOIN {$wpdb->prefix}lg_quizzes q ON s.quiz_id = q.quiz_id
             WHERE s.section_id = %d
         ", $id);
         $section = $wpdb->get_row($query, ARRAY_A);
@@ -107,7 +107,7 @@
             echo $message;
         }
     ?>
-    <form method='post' name='section-post' id='section-post' class='validate' novalidate='novalidate'>
+    <form method='post' name='section-post' id='section-post' class='validate'>
         <input name='action' type='hidden' value='section-post'>
         <?php if ($id > 0) : ?>
             <input name='section_id' type='hidden' value='<?php echo esc_attr($id); ?>'>
@@ -116,17 +116,17 @@
             <tbody>
                 <tr class='form-required'>
                     <th scope='row'><label for='name'>Nombre</label></th>
-                    <td><input class='regular-text' name='name' type='text' id='name' value='<?php echo esc_attr($name); ?>' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off' maxlength='60'></td>
+                    <td><input class='regular-text' name='name' type='text' id='name' required value='<?php echo esc_attr($name); ?>' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off' maxlength='60'></td>
                 </tr>
                 <tr class='form-required'>
                     <th scope='row'><label for='order'>Orden</label></th>
-                    <td><input type='number' class='small-text' name='order' type='text' id='order' value='<?php echo esc_attr($order); ?>'></td>
+                    <td><input type='number' class='small-text' name='order' type='text' id='order' required value='<?php echo esc_attr($order); ?>'></td>
                 </tr>
                 <tr class='form-field'>
                     <th scope='row'><label for='quiz'>Encuesta</label></th>
                     <td>
-                        <select name="quiz" id="quiz">
-                            <option value=''>-- Elige una opción --</option>
+                        <select name="quiz" id="quiz" required>
+                            <option selected disabled value=''>-- Elige una opción --</option>
                             <?php
                                 
                                 foreach ($quiz_list as $key => $value) {

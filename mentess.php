@@ -37,6 +37,7 @@ function lg_activate_plugin() {
         `order` INT NOT NULL,
         `high_score` INT,
         `low_score` INT,
+        `chart_type` ENUM('bar', 'doughnut', 'pie', 'polarArea', 'radar') NOT NULL,
         PRIMARY KEY (`section_id`),
         FOREIGN KEY (`quiz_id`) REFERENCES {$wpdb->prefix}lg_quizzes(`quiz_id`) ON DELETE CASCADE
     );";
@@ -68,7 +69,7 @@ function lg_activate_plugin() {
     $sql_lg_response_options = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_response_options (
         `response_option_id` INT NOT NULL AUTO_INCREMENT,
         `response_type_id` INT NOT NULL,
-        `response_text` VARCHAR(255) NOT NULL,
+        `response_text` VARCHAR(100) NOT NULL,
         `response_value` INT NOT NULL,
         PRIMARY KEY (`response_option_id`),
         FOREIGN KEY (`response_type_id`) REFERENCES {$wpdb->prefix}lg_responses_type(`response_type_id`) ON DELETE CASCADE
@@ -108,14 +109,14 @@ function lg_activate_plugin() {
     // Crear Tabla Respuestas de Usuario
     $sql_lg_user_responses = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_user_responses (
         `response_id` INT NOT NULL AUTO_INCREMENT,
-        `user_quiz_id` BIGINT(20) UNSIGNED NOT NULL,
+        `user_quiz_id` INT NOT NULL,
         `question_id` INT NOT NULL,
-        `response` VARCHAR(255) NOT NULL,
-        `value` INT,
+        `response_text` VARCHAR(100) NOT NULL,
+        `response_value` INT,
         `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
         `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`response_id`),
-        FOREIGN KEY (`user_quiz_id`) REFERENCES {$wpdb->prefix}users(`ID`) ON DELETE CASCADE,
+        FOREIGN KEY (`user_quiz_id`) REFERENCES {$wpdb->prefix}lg_user_quiz(`user_quiz_id`) ON DELETE CASCADE,
         FOREIGN KEY (`question_id`) REFERENCES {$wpdb->prefix}lg_questions(`question_id`) ON DELETE CASCADE
     );";
     $wpdb->query($sql_lg_user_responses);
@@ -285,23 +286,9 @@ function show_shortcode($atts){
     $_quiz_shortcode_instance = new quiz_shortcode;
     $id = intval($atts['id']); //obtener el id por parametro
 
-    //Programar las acciones del boton
-    if(isset($_POST['btnguardar1'])){
-        $listadePreguntas = $_quiz_shortcode_instance->get_questions($id);
-        $codigo = uniqid();
-        foreach ($listadePreguntas as $key => $value) {
-           $idpregunta = $value['DetalleId'];
-           if(isset($_POST[$idpregunta])){
-               $valortxt = $_POST[$idpregunta];
-               $datos = [
-                   'DetalleId' => $idpregunta,
-                   'Codigo' => $codigo,
-                   'Respuesta' => $valortxt
-               ];
-               $_quiz_shortcode_instance->save_answer($datos);
-           }
-        }
-        return " Encuesta enviada exitosamente";
+    //Form POST
+    if(isset($_POST['quiz-responses-submit'])){
+        return $_quiz_shortcode_instance->save_form($_POST);
     }
 
     //Imprimir el formulario

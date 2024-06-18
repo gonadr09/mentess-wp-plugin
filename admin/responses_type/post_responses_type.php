@@ -91,7 +91,7 @@
             echo $message;
         }
     ?>
-    <form method='post' name='responses_type-post' id='responses_type-post' class='validate' novalidate='novalidate'>
+    <form method='post' name='responses_type-post' id='responses_type-post' class='validate'>
         <input name='action' type='hidden' value='responses_type-post'>
         <?php if ($id > 0) : ?>
             <input name='response_type_id' type='hidden' value='<?php echo esc_attr($response_type_id); ?>'>
@@ -100,13 +100,13 @@
             <tbody>
                 <tr class='form-required'>
                     <th scope='row'><label for='name'>Nombre</label></th>
-                    <td><input class='regular-text' name='name' type='text' id='name' value='<?php echo esc_attr($name); ?>' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off' maxlength='60'></td>
+                    <td><input class='regular-text' name='name' type='text' id='name' required value='<?php echo esc_attr($name); ?>' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off' maxlength='60'></td>
                 </tr>
                 <tr class='form-field'>
                     <th scope='row'><label for='responses_type'>Tipo de respuesta</label></th>
                     <td>
-                        <select name="response_type" id="response_type">
-                            <option value=''>-- Elige una opción --</option>
+                        <select name="response_type" id="response_type" required>
+                            <option selected disabled value=''>-- Elige una opción --</option>
                             <?php
                                 foreach ($enum_values as $value) {
                                     $selected = $response_type == $value ? 'selected' : '';
