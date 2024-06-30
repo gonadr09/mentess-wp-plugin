@@ -1,10 +1,29 @@
 <?php
     global $wpdb;
-
+    $message = '';
+    
     // Eliminar sección
     if (isset($_POST['delete-section-submit'])) {
         $delete_section_id = intval($_POST['delete-section-id']);
-        $wpdb->delete("{$wpdb->prefix}lg_sections", array('section_id' => $delete_section_id), array('%d'));
+        $result = $wpdb->delete("{$wpdb->prefix}lg_sections", array('section_id' => $delete_section_id), array('%d'));
+        
+        if ($result === false) {
+            $error_messages[] = $wpdb->last_error;
+            $error_message_text = implode('<br>', $error_messages);
+            $message = '
+                <div id="message" class="notice error">
+                    <p><strong>Hubo un error al eliminar:</strong></p>
+                    <p>Verifica que un usuario no haya respondido una encuesta relacionada con este item.</p>
+                    <p>' . $error_message_text . '</p>
+                </div>
+            ';
+        } else {
+            $message = '
+            <div id="message" class="notice updated">
+                <p><strong>Eliminado correctamente.</strong></p>
+            </div>
+        ';
+        }
     }
 
     // Obtener resultados
@@ -26,21 +45,11 @@
     ?>
     <a href="admin.php?page=post_section" class="page-title-action">Añadir nuevo</a>
     <hr class="wp-header-end">
-    <ul class="subsubsub">
-        <li class="all"><a href="plugins.php?plugin_status=all" class="current" aria-current="page">Todos <span class="count">(2)</span></a> |</li>
-        <li class="active"><a href="plugins.php?plugin_status=active">Activos <span class="count">(2)</span></a> |</li>
-        <li class="auto-update-disabled"><a href="plugins.php?plugin_status=auto-update-disabled">Desactivados <span class="count">(2)</span></a></li>
-    </ul>
-
- 
-    <form class="search-form search-plugins" method="get">
-        <p class="search-box">
-            <label class="screen-reader-text" for="plugin-search-input">Buscar</label>
-            <input type="search" id="plugin-search-input" class="wp-filter-search" name="s" value="" placeholder="Buscar..." aria-describedby="live-search-desc">
-            <input type="submit" id="search-submit" class="button hide-if-js" value="Search Installed Plugins">
-        </p>
-    </form>
-
+    <?php 
+        if (!empty($message)) {
+            echo $message;
+        }
+    ?>
     <table class="wp-list-table widefat fixed striped pages">
         <thead>
             <tr>
@@ -80,7 +89,6 @@
                                 <strong><a href='admin.php?page=post_section&id=$section_id' class='row-title'>$name</a></strong>
                                 <div class='row-actions'>
                                     <span class='edit'><a href='admin.php?page=post_section&id=$section_id' aria-label='Editar'>Editar</a> | </span>
-                                    <span class='trash'><a href='#' class='submitdelete' aria-label='Mover “$name ” a la papelera'>Eliminar</a> | </span>
                                     <span class='view'><a href='admin.php?page=questions&section-id=$section_id' rel='bookmark' aria-label='Preguntas'>Preguntas</a></span>
                                 </div>
                                 <button type='button' class='toggle-row'><span class='screen-reader-text'>Show more details</span></button>

@@ -1,10 +1,29 @@
 <?php
     global $wpdb;
+    $message = '';
 
     // Eliminar Tipo de respuesta
     if (isset($_POST['delete-item-submit'])) {
         $delete_item_id = intval($_POST['delete-item-id']);
-        $wpdb->delete("{$wpdb->prefix}lg_responses_type", array('response_type_id' => $delete_item_id), array('%d'));
+        $result = $wpdb->delete("{$wpdb->prefix}lg_responses_type", array('response_type_id' => $delete_item_id), array('%d'));
+
+        if ($result === false) {
+            $error_messages[] = $wpdb->last_error;
+            $error_message_text = implode('<br>', $error_messages);
+            $message = '
+                <div id="message" class="notice error">
+                    <p><strong>Hubo un error al eliminar:</strong></p>
+                    <p>Verifica que un usuario no haya respondido una encuesta relacionada con este item.</p>
+                    <p>' . $error_message_text . '</p>
+                </div>
+            ';
+        } else {
+            $message = '
+            <div id="message" class="notice updated">
+                <p><strong>Eliminado correctamente.</strong></p>
+            </div>
+        ';
+        }
     }
 
     // Obtener resultados
@@ -23,21 +42,11 @@
     ?>
     <a href="admin.php?page=post_response_type" class="page-title-action">Añadir nuevo</a>
     <hr class="wp-header-end">
-    <ul class="subsubsub">
-        <li class="all"><a href="plugins.php?plugin_status=all" class="current" aria-current="page">Todos <span class="count">(2)</span></a> |</li>
-        <li class="active"><a href="plugins.php?plugin_status=active">Activos <span class="count">(2)</span></a> |</li>
-        <li class="auto-update-disabled"><a href="plugins.php?plugin_status=auto-update-disabled">Desactivados <span class="count">(2)</span></a></li>
-    </ul>
-
- 
-    <form class="search-form search-plugins" method="get">
-        <p class="search-box">
-            <label class="screen-reader-text" for="plugin-search-input">Buscar</label>
-            <input type="search" id="plugin-search-input" class="wp-filter-search" name="s" value="" placeholder="Buscar..." aria-describedby="live-search-desc">
-            <input type="submit" id="search-submit" class="button hide-if-js" value="Search Installed Plugins">
-        </p>
-    </form>
-
+    <?php 
+        if (!empty($message)) {
+            echo $message;
+        }
+    ?>
     <table class="wp-list-table widefat fixed striped pages">
         <thead>
             <tr>
@@ -70,16 +79,12 @@
                             </th>
                             <td class='column-primary has-row-actions' data-colname='name'>
                                 <strong><a href='admin.php?page=post_response_type&id=$response_type_id' class='row-title'>$name</a></strong>
-                                <div class='row-actions'>
-                                    <span class='edit'><a href='admin.php?page=post_response_type&id=$response_type_id' aria-label='Editar'>Editar</a> | </span>
-                                    <span class='trash'><a href='#' class='submitdelete' aria-label='Mover “$name ” a la papelera'>Eliminar</a> | </span>
-                                </div>
                                 <button type='button' class='toggle-row'><span class='screen-reader-text'>Show more details</span></button>
                             </td>
                             <td class='' data-colname='Tipo de respuesta:'>$response_type</td>
                             <td data-colname='Acciones:'>
                                 <div style='display: flex; gap: 10px'>";
-                                if ($response_type == 'select') {
+                                if ($response_type == 'select' or $response_type == 'radio') {
                                     echo "<a href='admin.php?page=response_options&response-type-id=$response_type_id' class='button button-secondary' aria-label='Opciones'>Opciones</a>";
                                 }
                                 echo "

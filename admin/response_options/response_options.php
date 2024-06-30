@@ -24,7 +24,7 @@
         // Eliminar preguntas que ya no están presentes en el formulario
         foreach ($options_db_ids as $response_option_id) {
             if (!in_array($response_option_id, $response_options_id_list)) {
-                $wpdb->delete("{$wpdb->prefix}lg_response_options", array('response_option_id' => $response_option_id), array('%d'));
+                $result = $wpdb->delete("{$wpdb->prefix}lg_response_options", array('response_option_id' => $response_option_id), array('%d'));
             }
         }
     

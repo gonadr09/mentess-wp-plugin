@@ -1,10 +1,29 @@
 <?php
     global $wpdb;
+    $message = '';
 
     // Eliminar encuesta
     if (isset($_POST['delete-quiz-submit'])) {
         $delete_quiz_id = intval($_POST['delete-quiz-id']);
-        $wpdb->delete("{$wpdb->prefix}lg_quizzes", array('quiz_id' => $delete_quiz_id), array('%d'));
+        $result = $wpdb->delete("{$wpdb->prefix}lg_quizzes", array('quiz_id' => $delete_quiz_id), array('%d'));
+
+        if ($result === false) {
+            $error_messages[] = $wpdb->last_error;
+            $error_message_text = implode('<br>', $error_messages);
+            $message = '
+                <div id="message" class="notice error">
+                    <p><strong>Hubo un error al eliminar:</strong></p>
+                    <p>Verifica que un usuario no haya respondido una encuesta relacionada con este item.</p>
+                    <p>' . $error_message_text . '</p>
+                </div>
+            ';
+        } else {
+            $message = '
+            <div id="message" class="notice updated">
+                <p><strong>Eliminado correctamente.</strong></p>
+            </div>
+        ';
+        }
     }
 
     // Obtener resultados
@@ -28,6 +47,12 @@
     ?>
     <a href="admin.php?page=post_quiz" class="page-title-action">Añadir nuevo</a>
     <hr class="wp-header-end">
+    <?php 
+        if (!empty($message)) {
+            echo $message;
+        }
+    ?>
+    <!-- 
     <ul class="subsubsub">
         <li class="all"><a href="plugins.php?plugin_status=all" class="current" aria-current="page">Todos <span class="count">(2)</span></a> |</li>
         <li class="active"><a href="plugins.php?plugin_status=active">Activos <span class="count">(2)</span></a> |</li>
@@ -41,7 +66,7 @@
             <input type="submit" id="search-submit" class="button hide-if-js" value="Search Installed Plugins">
         </p>
     </form>
-
+     -->
     <table class="wp-list-table widefat fixed striped pages">
         <thead>
             <tr>
@@ -79,9 +104,7 @@
                             <td class='column-primary has-row-actions' data-colname='name'>
                                 <strong><a href='admin.php?page=post_quiz&id=$id' class='row-title'>$name</a></strong>
                                 <div class='row-actions'>
-                                    <span class='edit'><a href='admin.php?page=post_quiz&id=$id' aria-label='Editar'>Editar</a> | </span>
-                                    <span class='trash'><a href='#' class='submitdelete' aria-label='Mover “$name ” a la papelera'>Eliminar</a> | </span>
-                                    <span class='view'><a href='#' rel='bookmark' aria-label='Ver “$name ”'>Ver</a></span>
+                                    <span class='edit'><a href='admin.php?page=post_quiz&id=$id' aria-label='Editar'>Editar</a></span>
                                 </div>
                                 <button type='button' class='toggle-row'><span class='screen-reader-text'>Show more details</span></button>
                             </td>

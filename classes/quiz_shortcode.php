@@ -96,7 +96,7 @@
         public function form_open($quiz_id, $quiz_title, $user_quiz_id) {
             $html = "
                 <br>
-                <div class='wrap '>
+                <div class='wrap container'>
                     <h1>$quiz_title</h1>
                     <br>
                     <form method='POST'>
@@ -146,6 +146,33 @@
                 $html .= "
                         </select>
                     </div><br>
+                ";
+            } elseif ($response_type == "radio"){
+                $html = "
+                    <div class='radio-input'>
+                        <p class='form-label'> $order) $question</p>
+                        <div class='combo-radio'>
+                ";
+                if (isset($options_by_type[$response_type_id])) {
+                    foreach ($options_by_type[$response_type_id] as $option) {
+                        $response_option_id = $option['response_option_id'];
+                        $response_text = $option['response_text'];
+                        $response_value = $option['response_value'];
+                        /* <div class='form-check form-check-inline border'>
+                                <input class='form-check-input' type='radio' name='$question_id' id='$question_id-$response_option_id' autocomplete='off' value='$response_value~$response_text'>
+                                <label class='form-check-label' for='$question_id-$response_option_id'>$response_text</label>
+                            </div>
+                              <label class="label"> */
+                        $html .= "
+                            <label class='label'>
+                                <input type='radio' id='$question_id-$response_option_id' name='$question_id' value='$response_value~$response_text' />
+                                <p class='text'>$response_text</p>
+                            </label>
+                        ";
+                    }
+                }
+                $html .= "
+                    </div></div><br><br>
                 ";
             } elseif ($response_type == 'number') {
                 $html = "
@@ -236,6 +263,25 @@
         }
 
 
+        function check_view_by_user_quiz_id($user_quiz_id) {
+            $quiz_id = 0;
+            // Si hay parametro user_quiz_id y si es administrador, cambiamos user_quiz_id por el del parametro
+            if ($user_quiz_id) {
+                global $wpdb;
+                $table = "{$wpdb->prefix}lg_user_quiz";
+                $query = $wpdb->prepare("SELECT * FROM $table WHERE user_quiz_id = %d", $user_quiz_id);
+                $data = $wpdb->get_row($query, ARRAY_A);
+                if (!empty($data) && $data['is_complete'] && (current_user_can('edit_others_posts') || get_current_user_id() == $data['user_id']) ) {
+                        $user_quiz_id = $data['user_quiz_id'];
+                        $quiz_id = $data['quiz_id'];
+                } else {
+                    $user_quiz_id = 0;
+                }
+            }
+            return array('quiz_id' => $quiz_id, 'user_quiz_id' => $user_quiz_id);
+        }
+
+
         function quiz_html_builder($quiz_id){
             // Obtener el ID del usuario actual
             $user_id = get_current_user_id();
@@ -246,6 +292,16 @@
             $quiz_name = $quiz['name'];
             $quiz_id = $quiz['quiz_id'];
             $wc_product_id = $quiz['wc_product_id'];
+
+            // Obtener la encuesta-usuario
+            $user_quiz = $this->get_user_quiz($quiz_id, $user_id);
+            $user_quiz_id = isset($user_quiz['user_quiz_id'])? $user_quiz['user_quiz_id'] : null;
+            $user_quiz_is_complete = isset($user_quiz['is_complete'])? $user_quiz['is_complete'] : null;
+
+            // Verificar que no esté completada
+            if ($user_quiz_is_complete) {
+                    return $this->show_results($quiz_id, $user_quiz_id);
+            }
             
             // Verificar si el usuario ha comprado el producto
             if (!in_array('administrator', $user->roles) && !$this->user_has_bought_product($user_id, $wc_product_id)) {
@@ -255,21 +311,6 @@
                         <p>Solo los usuarios que hayan comprado esta encuesta tienen acceso para realizarla. Por favor, ingresa a nuestra tienda, busca la encuesta y comprala para poder acceder.</p>
                         <p><small>Si ya has comprado la encuesta y no puedes acceder, por favor, contactanos para resolver el problema.</small></p>
                     </div>
-                ";
-            }
-
-            // Obtener la encuesta-usuario
-            $user_quiz = $this->get_user_quiz($quiz_id, $user_id);
-            $user_quiz_id = isset($user_quiz['user_quiz_id'])? $user_quiz['user_quiz_id'] : null;
-            $user_quiz_is_complete = isset($user_quiz['is_complete'])? $user_quiz['is_complete'] : null;
-
-            // Verificar que no esté completada
-            if ($user_quiz_is_complete) {
-                return "
-                <div class='my-5'>
-                    <h3>Resultados de la encuesta</h3>
-                    <p>Gracias por completar la encuesta.</p>
-                </div>
                 ";
             }
 
@@ -308,13 +349,13 @@
         }
 
 
-        function check_if_quiz_is_complete($user_quiz_id, $questions_list) {
+        function update_if_quiz_is_complete($user_quiz_id, $questions_list) {
             $user_responses_list = $this->get_user_responses($user_quiz_id);
             $user_responses_count = count($user_responses_list);
             $questions_count = count($questions_list);
             if ($user_responses_count == $questions_count) {
                 global $wpdb;
-                $table = "{$wpdb->prefix}lg_user_responses";
+                $table = "{$wpdb->prefix}lg_user_quiz";
                 $result = $wpdb->update(
                     $table,
                     ['is_complete' => true],
@@ -348,9 +389,9 @@
                 if(isset($post[$question_id])){
                     $response_type = $value['response_type'];
     
-                    if ($response_type == 'select') {
+                    if ($response_type == 'select' or $response_type == 'radio') {
                         $input_value = $post[$question_id];
-    
+
                         // Separar el valor de la respuesta del texto de la respuesta (ejemplo: '2~Sí')
                         list($response_value, $response_text) = explode('~', $input_value);
     
@@ -407,7 +448,7 @@
                 }
             }
 
-            $is_quiz_completed = $this->check_if_quiz_is_complete($user_quiz_id, $questions_list);
+            $is_quiz_completed = $this->update_if_quiz_is_complete($user_quiz_id, $questions_list);
 
             if ($is_quiz_completed) {
                 $message = $this->show_results($quiz_id, $user_quiz_id);
@@ -417,19 +458,19 @@
             return $message;
         }
 
-        function show_results($quiz_id, $user_quiz_id) {
+        function show_results($quiz_id, $user_quiz_id) {            
             $results_per_category = $this->get_results_per_category($user_quiz_id);
             $sections_list = $this->get_sections($quiz_id);
             $quiz = $this->get_quiz($quiz_id);
             $general_answers = $this->get_general_answers($user_quiz_id);
             $quiz_name = $quiz['name'];
 
-            $html_general_anser = '';
+            $html_general_answer = '';
             foreach ($general_answers as $general_anwser){
                 $question = $general_anwser['question'];
                 $response_text = $general_anwser['response_text'];
 
-                $html_general_anser .= "
+                $html_general_answer .= "
                         <tr>
                             <td style='background-color: #467BE9; color: #FFF;'>$question</td>
                             <td>$response_text</td>
@@ -438,23 +479,43 @@
             }
             $html_result = "
                 <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+                <script src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js' integrity='sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==' crossorigin='anonymous' referrerpolicy='no-referrer'></script>
 
-                <div class='container'>
-                    <h1 class='text-center mt-5 mb-2'>$quiz_name</h1>
-                    <h6 class='text-center mb-3'>Evaluación para la orientación profesional</h6>
-                    <div class='col-9 mx-auto'>
-                        <table class='table table-striped table-bordered'>
-                            <tbody>
-                                ". $html_general_anser ."
-                            </tbody>
-                        </table>
+                <button id='generate-pdf'>New Generar PDF</button>
+
+                <button onclick='generatePDF()'>Generar PDF JS</button>
+                <a href=". esc_url(add_query_arg(['generate_pdf' => 1, 'user_quiz_id' => $user_quiz_id])) ." target='_blank' class='button'>Generar PDF PHP</a>
+
+                <div id='pdf' class=''>
+                    <div data-pdf='quiz-title-section'>
+                        <h1 class='text-center mt-5 mb-2' style='color: #4275DD;'>$quiz_name</h1>
+                        <h5 class='text-center mb-3' style='color: #4275DD'>Evaluación para la orientación profesional</h5>
                     </div>
             ";
 
             foreach ($sections_list as $section) {
-                if ($section['high_score'] > 0) {
+                // Comprobar si es una sección general (sin puntajes) o una seccion con puntajes
+                if ($section['high_score'] <= 0) {
+                    $html_result .= "
+                    <hr class='my-4 col-8 mx-auto'>
+                    <div data-pdf='general-answers-section'>
+                        <h2 class='text-center'>Sección " . $section['order'] . ": ". $section['name'] ."</h2>
+                        <h6 class='text-center'>" . $section['description'] . "</h6>
+                        <div class='col-9 mx-auto'>
+                            <table class='table table-striped table-bordered'>
+                                <tbody>
+                                    ". $html_general_answer ."
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    ";
+                } else {
                     $html_category_winners = '';
                     $html_list_result = '';
+
+                    $html_backup_winner = '';
+                    $score_backup_winner = 0;
 
                     $chart_data_labels = array();
                     $chart_data_values = array();
@@ -463,11 +524,31 @@
                         if ($category['section_id'] == $section['section_id']) {
                             if ($category['total_value'] >= $section['high_score']){
                                 $html_category_winners .= '
-                                <div class="mt-4">
-                                    <h5 style="color: #467be9">'. esc_html($category['subtitle_result']) .'</h5>
-                                    <h5>'. esc_html($category['title_result']) .'</h5>
+                                <div class="mt-4" data-pdf="category-winner-text-section">
+                                    <img width="100px" src="'. esc_html($category['image_url']) .'"></img>
+                                    <h3 style="color: #467be9">'. esc_html($category['subtitle_result']) .'</h3>
+                                    <h4>'. esc_html($category['title_result']) .'</h4>
                                     <p>'. esc_html($category['text_result']) .'</p>
                                 </div>
+                                ';
+                            } elseif ($category['total_value'] > $score_backup_winner){
+                                $html_backup_winner = '
+                                    <div class="mt-4" data-pdf="category-winner-text-section">
+                                        <img width="100px" src="'. esc_html($category['image_url']) .'"></img>
+                                        <h3 style="color: #467be9">'. esc_html($category['subtitle_result']) .'</h3>
+                                        <h4>'. esc_html($category['title_result']) .'</h4>
+                                        <p>'. esc_html($category['text_result']) .'</p>
+                                    </div>
+                                ';
+                                $score_backup_winner = $category['total_value'];
+                            } elseif ($category['total_value'] == $score_backup_winner){
+                                $html_backup_winner .= '
+                                    <div class="mt-4" data-pdf="category-winner-text-section">
+                                        <img width="100px" src="'. esc_html($category['image_url']) .'"></img>
+                                        <h3 style="color: #467be9">'. esc_html($category['subtitle_result']) .'</h3>
+                                        <h4>'. esc_html($category['title_result']) .'</h4>
+                                        <p>'. esc_html($category['text_result']) .'</p>
+                                    </div>
                                 ';
                             }
                             $html_list_result .= '<li>' . esc_html($category['name']) . ': ' . esc_html($category['total_value']) . '</li>';
@@ -475,16 +556,13 @@
                             $chart_data_values[] = $category['total_value'];
                         }
                     }
+
                     $html_result .= '
-                    <div>
+                    <div data-pdf="scored-answers-section">
                         <hr class="my-4 col-8 mx-auto">
                         <h2 class="text-center">Sección ' . $section['order'] . ': '. $section['name'] .'</h2>
-                        <h6 class="text-center">Tus resultados revelan que:</h6>
-                        '. $html_category_winners .'
-                        <h4 class="mt-4">Listado</h4>
-                        <ul>
-                            '. $html_list_result .'
-                        </ul>
+                        <h6 class="text-center">' . $section["description"] . '</h6>
+                        '. ($html_category_winners ? $html_category_winners : $html_backup_winner) .'
                         '. $this->draw_chart($section, $chart_data_labels, $chart_data_values) .'
                     </div>
                     ';
@@ -516,6 +594,7 @@
                     cat.section_id,
                     cat.category_id,
                     cat.name,
+                    cat.image_url,
                     cat.title_result,
                     cat.subtitle_result,
                     cat.text_result,
@@ -552,32 +631,47 @@
             }
 
             $html = '
-                <div class="col-6 mx-auto">
-                <canvas id="chart-'. $section_id .'"></canvas>
+                <div class="col-12 col-lg-6 mx-auto">
 
-                <script type="text/javascript">
-                    const chart_data_labels'. $section_id .' = '. json_encode($chart_data_labels) .';
-                    const chart_data_values'. $section_id .' = '. json_encode($chart_data_values) .';
+                    <img class="chart-image" id="chart-image-'. $section_id .'" src="" style="display: block;">
+                    <canvas class="canvas-chart" id="chart-'. $section_id .'" data-pdf="canvas-chart"></canvas>
 
-                    const ctx'. $section_id .' = document.getElementById("chart-'. $section_id .'");
-                    new Chart(ctx'. $section_id .', {
-                        type: "'. $chart_type .'",
-                        data: {
-                            labels: chart_data_labels'. $section_id .',
-                            datasets: [{
-                                label: "'. $section_name .'",
-                                data: chart_data_values'. $section_id .',
-                            }],
-                        },
-                        options: {
-                            indexAxis: "y",
-                            '. $min_param .'
-                        }
-                    });
-                </script>
+                    <script type="text/javascript">
+                        let chart_data_labels'. $section_id .' = '. json_encode($chart_data_labels) .';
+                        let chart_data_values'. $section_id .' = '. json_encode($chart_data_values) .';
+
+                        let ctx'. $section_id .' = document.getElementById("chart-'. $section_id .'");
+                        let chart'. $section_id .' = new Chart(ctx'. $section_id .', {
+                            type: "'. $chart_type .'",
+                            data: {
+                                labels: chart_data_labels'. $section_id .',
+                                datasets: [{
+                                    label: "'. $section_name .'",
+                                    data: chart_data_values'. $section_id .',
+                                }],
+                            },
+                            options: {
+                                indexAxis: "y",
+                                '. $min_param .'
+                            }
+                        });
+                    </script>
 
                 </div>
             ';
+
+            /*
+                                        plugins: [{
+                                afterDraw: function(chart) {
+                                    let image = new Image();
+                                    image.crossOrigin = "Anonymous"; // Si aplica para tu caso
+                                    image.src = ctx'. $section_id .'.toDataURL("image/png");
+                                    document.getElementById("chart-image-'. $section_id .'").src = image.src;
+                                    
+                                }
+                            }]
+            */
+
             return $html;
         }
     }

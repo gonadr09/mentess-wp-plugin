@@ -15,6 +15,71 @@
 // Requires
 require_once dirname(__FILE__) . '/classes/quiz_shortcode.php';
 
+// Incluir Dompdf
+require_once plugin_dir_path(__FILE__) . '/dependencies/dompdf/autoload.inc.php';
+use Dompdf\Dompdf;
+
+require_once plugin_dir_path(__FILE__) . '/dependencies/tcpdf/tcpdf.php';
+
+
+// Función para generar PDF
+function generar_pdf() {
+    if (!isset($_GET['generate_pdf']) || !isset($_GET['user_quiz_id'])) {
+        return;
+    }
+
+    wp_enqueue_style('mentess-quiz-form-css', plugin_dir_url(__FILE__) . 'admin/css/mentess-quiz-form.css');
+
+
+
+    $_quiz_shortcode_instance = new quiz_shortcode;
+    $user_quiz_id = isset($_GET['user_quiz_id']) ? intval($_GET['user_quiz_id']) : null;
+
+    if (!$user_quiz_id) {
+        return;
+    }
+
+    $result = $_quiz_shortcode_instance->check_view_by_user_quiz_id($user_quiz_id);
+    $user_quiz_id = $result['user_quiz_id'];
+    $quiz_id = $result['quiz_id'];
+
+    if (!$user_quiz_id || !$quiz_id) {
+        return;
+    }
+    
+    $html_content = $_quiz_shortcode_instance->show_results($result['quiz_id'], $result['user_quiz_id']);
+    
+    // dompdf
+/*     $dompdf = new Dompdf();
+    $dompdf->loadHtml($html_content);
+    $dompdf->setPaper('A4', 'portrait');
+    $dompdf->render();
+    $dompdf->stream('resultado.pdf', array('Attachment' => 0)); */
+
+    // Crear instancia de TCPDF
+    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    // Establecer información del documento
+    $pdf->SetCreator(PDF_CREATOR);
+    $pdf->SetAuthor('Your Name');
+    $pdf->SetTitle('Resultado del Quiz');
+    $pdf->SetSubject('Resultado del Quiz');
+    $pdf->SetKeywords('Quiz, Resultado, TCPDF, PHP');
+    // Agregar una página
+    $pdf->AddPage();
+    // Escribir el contenido HTML en el documento PDF
+    $pdf->writeHTML($html_content, true, false, true, false, '');
+    // Nombre del archivo PDF para descarga
+    $filename = 'resultado.pdf';
+    // Enviar el PDF al navegador para descarga
+    $pdf->Output($filename, 'D');
+    // Agregar el botón para generar el PDF
+    
+    exit;
+}
+
+// Acción para manejar la generación de PDF
+add_action('init', 'generar_pdf');
+
 function lg_activate_plugin() {
     global $wpdb;
 
@@ -25,7 +90,7 @@ function lg_activate_plugin() {
         `is_active` BOOLEAN DEFAULT FALSE,
         `wc_product_id` BIGINT(20) UNSIGNED
         PRIMARY KEY (`quiz_id`),
-        FOREIGN KEY (`wc_product_id`) REFERENCES {$wpdb->prefix}posts(`ID`) ON DELETE CASCADE
+        FOREIGN KEY (`wc_product_id`) REFERENCES {$wpdb->prefix}posts(`ID`) ON DELETE SET NULL
     );";
     $wpdb->query($sql_lg_quizzes);
 
@@ -34,12 +99,13 @@ function lg_activate_plugin() {
         `section_id` INT NOT NULL AUTO_INCREMENT,
         `quiz_id` INT NOT NULL,
         `name` VARCHAR(45) NOT NULL,
+        `description` VARCHAR(255) NOT NULL,
         `order` INT NOT NULL,
         `high_score` INT,
         `low_score` INT,
         `chart_type` ENUM('bar', 'doughnut', 'pie', 'polarArea', 'radar') NOT NULL,
         PRIMARY KEY (`section_id`),
-        FOREIGN KEY (`quiz_id`) REFERENCES {$wpdb->prefix}lg_quizzes(`quiz_id`) ON DELETE CASCADE
+        FOREIGN KEY (`quiz_id`) REFERENCES {$wpdb->prefix}lg_quizzes(`quiz_id`) ON DELETE RESTRICT
     );";
     $wpdb->query($sql_lg_sections);
 
@@ -51,8 +117,9 @@ function lg_activate_plugin() {
         `title_result` VARCHAR(100) NOT NULL,
         `subtitle_result` VARCHAR(100) NOT NULL,
         `text_result` TEXT NOT NULL,
+        `image_url` VARCHAR(255) DEFAULT NULL,
         PRIMARY KEY (`category_id`),
-        FOREIGN KEY (`section_id`) REFERENCES {$wpdb->prefix}lg_sections(`section_id`) ON DELETE CASCADE
+        FOREIGN KEY (`section_id`) REFERENCES {$wpdb->prefix}lg_sections(`section_id`) ON DELETE RESTRICT
     );";
     $wpdb->query($sql_lg_categories);
 
@@ -60,7 +127,7 @@ function lg_activate_plugin() {
     $sql_lg_responses_type = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_responses_type (
         `response_type_id` INT NOT NULL AUTO_INCREMENT,
         `name` VARCHAR(45) NOT NULL,
-        `response_type` ENUM('text', 'number', 'select') NOT NULL,
+        `response_type` ENUM('text', 'number', 'select', 'radio') NOT NULL,
         PRIMARY KEY (`response_type_id`)
     );";
     $wpdb->query($sql_lg_responses_type);
@@ -87,7 +154,7 @@ function lg_activate_plugin() {
         PRIMARY KEY (`question_id`),
         FOREIGN KEY (`section_id`) REFERENCES {$wpdb->prefix}lg_sections(`section_id`) ON DELETE CASCADE,
         FOREIGN KEY (`category_id`) REFERENCES {$wpdb->prefix}lg_categories(`category_id`) ON DELETE CASCADE,
-        FOREIGN KEY (`response_type_id`) REFERENCES {$wpdb->prefix}lg_responses_type(`response_type_id`) ON DELETE CASCADE
+        FOREIGN KEY (`response_type_id`) REFERENCES {$wpdb->prefix}lg_responses_type(`response_type_id`) ON DELETE SET NULL
     );";
     $wpdb->query($sql_lg_questions);
 
@@ -101,8 +168,8 @@ function lg_activate_plugin() {
         `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
         `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`user_quiz_id`),
-        FOREIGN KEY (`user_id`) REFERENCES {$wpdb->prefix}users(`ID`) ON DELETE CASCADE,
-        FOREIGN KEY (`quiz_id`) REFERENCES {$wpdb->prefix}lg_quizzes(`quiz_id`) ON DELETE CASCADE
+        FOREIGN KEY (`user_id`) REFERENCES {$wpdb->prefix}users(`ID`) ON DELETE RESTRICT,
+        FOREIGN KEY (`quiz_id`) REFERENCES {$wpdb->prefix}lg_quizzes(`quiz_id`) ON DELETE RESTRICT
     );";
     $wpdb->query($sql_lg_user_quiz);
 
@@ -117,7 +184,7 @@ function lg_activate_plugin() {
         `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`response_id`),
         FOREIGN KEY (`user_quiz_id`) REFERENCES {$wpdb->prefix}lg_user_quiz(`user_quiz_id`) ON DELETE CASCADE,
-        FOREIGN KEY (`question_id`) REFERENCES {$wpdb->prefix}lg_questions(`question_id`) ON DELETE CASCADE
+        FOREIGN KEY (`question_id`) REFERENCES {$wpdb->prefix}lg_questions(`question_id`) ON DELETE RESTRICT
     );";
     $wpdb->query($sql_lg_user_responses);
 }
@@ -232,6 +299,16 @@ function lg_create_admin_menu() {
         'response_options_page' // Function to display the submenu page content
     );
 
+    // Página encuestas respondidas
+    add_submenu_page(
+        'mentess', // No se muestra en el menú
+        'Encuestas respondidas', // Page title
+        'Encuestas respondidas', // Submenu title
+        'manage_options', // Capability
+        'user_quiz_list', // Submenu slug
+        'user_quiz_list_page' // Function to display the submenu page content
+    );
+
 }
 
 // Function to display main menu page content
@@ -277,12 +354,42 @@ function response_options_page() {
     include plugin_dir_path(__FILE__).'admin/response_options/response_options.php';
 }
 
+function user_quiz_list_page() {
+    include plugin_dir_path(__FILE__).'admin/user_quiz/list_user_quiz.php';
+}
+
 add_action('admin_menu', 'lg_create_admin_menu');
 
 
 
 // Shortcodes
 function show_shortcode($atts){
+    wp_enqueue_style('mentess-quiz-form-css', plugin_dir_url(__FILE__) . 'admin/css/mentess-quiz-form.css');
+
+    // Registrar y encolar html2canvas
+    wp_register_script('html2canvas', plugin_dir_url(__FILE__) . 'admin/js/html2canvas.min.js', [], null, true);
+    wp_enqueue_script('html2canvas');
+
+    // Registrar y encolar jsPDF
+    wp_register_script('jspdf', plugin_dir_url(__FILE__) . 'admin/js/jspdf.umd.min.js', ['html2canvas'], null, true);
+    wp_enqueue_script('jspdf');
+
+    // Registrar y encolar jsPDF-AutoTable
+    wp_register_script('jspdf-autotable', plugin_dir_url(__FILE__) . 'admin/js/jspdf.plugin.autotable.js', ['jspdf'], null, true);
+    wp_enqueue_script('jspdf-autotable');
+    
+    // Registrar y encolar dompurify
+    wp_register_script('cell', plugin_dir_url(__FILE__) . 'admin/js/cell.js', ['jspdf'], null, true);
+    wp_enqueue_script('cell');
+
+/*     // Registrar y encolar html2pdf
+    wp_register_script('html2pdf', plugin_dir_url(__FILE__) . 'admin/js/html2pdf.bundle.min.js', [], null, true);
+    wp_enqueue_script('html2pdf'); */
+    
+    // Registrar y encolar tu script personalizado
+    wp_register_script('my-plugin-pdf', plugin_dir_url(__FILE__) . 'admin/js/exportToPDF.js', ['cell', 'jspdf', 'html2canvas'], null, true);
+    wp_enqueue_script('my-plugin-pdf');
+
     $_quiz_shortcode_instance = new quiz_shortcode;
     $id = intval($atts['id']); //obtener el id por parametro
 
@@ -291,9 +398,24 @@ function show_shortcode($atts){
         return $_quiz_shortcode_instance->save_form($_POST);
     }
 
-    //Imprimir el formulario
-    $html = $_quiz_shortcode_instance->quiz_html_builder($id);
+    // Form GET
+    $user_quiz_id = isset($_GET['user_quiz_id']) ? intval($_GET['user_quiz_id']) : null;
+    if ($user_quiz_id) {
+        $result = $_quiz_shortcode_instance->check_view_by_user_quiz_id($user_quiz_id);
+
+        if ($result['quiz_id'] && $result['user_quiz_id']) {
+            $html = $_quiz_shortcode_instance->show_results($result['quiz_id'], $result['user_quiz_id']);
+        } else {
+            $html = "<h6>Acceso restringido</h6><p>Usted no puede acceder a este resultado.</p>";
+        }
+
+    } else {
+        $html = $_quiz_shortcode_instance->quiz_html_builder($id);
+    }
+    $html .= '<button id="generate-pdf">Generar PDF</button>';
+
     return $html;
+
 }
 
 add_shortcode("QUIZ","show_shortcode");

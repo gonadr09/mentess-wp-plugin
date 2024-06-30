@@ -6,6 +6,7 @@
         $section_id = !empty($_POST['section_id']) ? intval($_POST['section_id']) : null;
         $quiz_post = intval($_POST['quiz']);
         $name_post = sanitize_text_field($_POST['name']);
+        $description_post = sanitize_text_field($_POST['description']);
         $order_post = intval($_POST['order']);
         //$responses_type_post = $_POST['responses_type']; // agregar sanitize_text_field
         $high_score_post = intval($_POST['high_score']);
@@ -16,13 +17,14 @@
         $data_prepared = [
             'quiz_id' => $quiz_post,
             'name' => $name_post,
+            'description' => $description_post,
             'order' => $order_post,
             //'responses_type' => $responses_type_post,
             'high_score' => $high_score_post,
             'low_score' => $low_score_post,
         ];
 
-        $format = ['%d', '%s', '%d', '%s', '%d', '%d'];
+        $format = ['%d', '%s', '%s', '%d', '%s', '%d', '%d'];
         
         if ($section_id) {
             // Actualizar sección existente
@@ -78,7 +80,7 @@
 
     if ($id > 0) {
         $query = $wpdb->prepare("
-            SELECT s.section_id, s.name AS section_name, s.order, s.high_score, s.low_score, q.quiz_id, q.name AS quiz_name
+            SELECT s.section_id, s.name AS section_name, s.description, s.order, s.high_score, s.low_score, q.quiz_id, q.name AS quiz_name
             FROM {$wpdb->prefix}lg_sections s
             LEFT JOIN {$wpdb->prefix}lg_quizzes q ON s.quiz_id = q.quiz_id
             WHERE s.section_id = %d
@@ -89,6 +91,7 @@
             $name = $section['section_name'];
             $quiz_id = $section['quiz_id'];
             $quiz_name = $section['quiz_name'];
+            $description = $section['description'];
             $order = $section['order'];
             //$responses_type = $section['responses_type'];
             $high_score = $section['high_score'];
@@ -117,6 +120,10 @@
                 <tr class='form-required'>
                     <th scope='row'><label for='name'>Nombre</label></th>
                     <td><input class='regular-text' name='name' type='text' id='name' required value='<?php echo esc_attr($name); ?>' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off' maxlength='60'></td>
+                </tr>
+                <tr class='form-required'>
+                    <th scope='row'><label for='description'>Descripción</label></th>
+                    <td><input class='regular-text' name='description' type='text' id='description' required value='<?php echo esc_attr($description); ?>' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off' maxlength='255'></td>
                 </tr>
                 <tr class='form-required'>
                     <th scope='row'><label for='order'>Orden</label></th>

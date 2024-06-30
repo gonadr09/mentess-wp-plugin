@@ -6,21 +6,41 @@
         $category_id = !empty($_POST['category_id']) ? intval($_POST['category_id']) : null;
         $section_id = intval($_POST['section']);
         $name = sanitize_text_field($_POST['name']);
+        $image_url = !empty($_POST['image_url']) ? sanitize_text_field($_POST['image_url']) : null;
         $title_result = sanitize_text_field($_POST['title_result']);
         $subtitle_result = sanitize_text_field($_POST['subtitle_result']);
         $text_result = sanitize_text_field($_POST['text_result']);
+
+        // Procesar la imagen subida
+        if (!empty($_FILES['image']['name'])) {
+            // Comprueba si hay algún error en la subida
+            if ($_FILES['image']['error'] == 0) {
+                $upload_dir = wp_upload_dir();
+                $upload_path = $upload_dir['path'] . '/' . basename($_FILES['image']['name']);
+                
+                // Mover el archivo subido al directorio de uploads
+                if (move_uploaded_file($_FILES['image']['tmp_name'], $upload_path)) {
+                    $image_url = $upload_dir['url'] . '/' . basename($_FILES['image']['name']);
+                } else {
+                    echo "Hubo un error al subir la imagen.";
+                }
+            } else {
+                echo "Hubo un error con la subida de la imagen.";
+            }
+        }
 
         $errors = false;
 
         $data_prepared = [
             'section_id' => $section_id,
             'name' => $name,
+            'image_url' => $image_url,
             'title_result' => $title_result,
             'subtitle_result' => $subtitle_result,
             'text_result' => $text_result,
         ];
 
-        $format = ['%d', '%s', '%s', '%s', '%s'];
+        $format = ['%d', '%s', '%s', '%s', '%s', '%s'];
         
         if ($category_id) {
             // Actualizar sección existente
@@ -64,6 +84,7 @@
     $subtitle_result = '';
     $text_result = '';
     $section_name = '';
+    $image_url = '';
     $title = 'Agregar';
 
     $section_list = $wpdb->get_results("
@@ -76,7 +97,7 @@
 
     if ($id > 0) {
         $query = $wpdb->prepare("
-            SELECT c.category_id, c.name AS category_name, c.title_result, c.subtitle_result, c.text_result, s.section_id, s.name AS section_name
+            SELECT c.category_id, c.name AS category_name, c.image_url, c.title_result, c.subtitle_result, c.text_result, s.section_id, s.name AS section_name
             FROM {$wpdb->prefix}lg_categories c
             LEFT JOIN {$wpdb->prefix}lg_sections s ON c.section_id = s.section_id
             WHERE c.category_id = %d
@@ -86,6 +107,7 @@
         if ($section) {
             $category_id = $section['category_id'];
             $category_name = $section['category_name'];
+            $image_url = $section['image_url'];
             $title_result = $section['title_result'];
             $subtitle_result = $section['subtitle_result'];
             $text_result = $section['text_result'];
@@ -105,7 +127,7 @@
             echo $message;
         }
     ?>
-    <form method='post' name='category-post' id='category-post' class='validate'>
+    <form method='post' name='category-post' id='category-post' class='validate' enctype="multipart/form-data">
         <input name='action' type='hidden' value='category-post'>
         <?php if ($id > 0) : ?>
             <input name='category_id' type='hidden' value='<?php echo esc_attr($id); ?>'>
@@ -115,6 +137,14 @@
                 <tr class='form-required'>
                     <th scope='row'><label for='name'>Nombre</label></th>
                     <td><input class='regular-text' name='name' type='text' id='name' required value='<?php echo esc_attr($category_name); ?>' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off' maxlength='60'></td>
+                </tr>
+                <tr>
+                    <th scope='row'><label for='image'>Imagen</label></th>
+                    <td>
+                        <img width="100px" src='<?php echo esc_attr($image_url); ?>'><br>
+                        <input type='file' name='image' id='image' accept='image/*'>
+                        <input type='hidden' name='image_url' value='<?php echo esc_attr($image_url); ?>'>
+                    </td>
                 </tr>
                 <tr class='form-field'>
                     <th scope='row'><label for='section'>Sección</label></th>

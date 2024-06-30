@@ -1,5 +1,7 @@
 <?php
     global $wpdb;
+    $message = '';
+    $error_messages = [];
 
     // PETICIONES POST
     if (isset($_POST['save-questions'])) {
@@ -8,10 +10,10 @@
         $question_id_list = isset($_POST['question_id']) ? $_POST['question_id'] : [];
         $question_count = 0;
         $errors = false;
-
+        
         // Obtener todas las preguntas de la base de datos para esta sección
         $query_questions = $wpdb->prepare("
-            SELECT question_id FROM {$wpdb->prefix}lg_questions WHERE section_id = %d ORDER BY order
+            SELECT question_id FROM {$wpdb->prefix}lg_questions WHERE section_id = %d ORDER BY `order`
         ", $section_id);
         $questions_db = $wpdb->get_results($query_questions, ARRAY_A);
 
@@ -23,67 +25,72 @@
         // Eliminar preguntas que ya no están presentes en el formulario
         foreach ($questions_db_ids as $question_id) {
             if (!in_array($question_id, $question_id_list)) {
-                $wpdb->delete("{$wpdb->prefix}lg_questions", array('question_id' => $question_id), array('%d'));
+                $result = $wpdb->delete("{$wpdb->prefix}lg_questions", array('question_id' => $question_id), array('%d'));
+                if ($result === false) {
+                    $errors = true;
+                    $error_messages[] = $wpdb->last_error;
+                }
             }
         }
     
-        // Guardar las preguntas (nuevas y actualizadas)
-        foreach ($question_list as $key => $value) {
-            $question_id = !empty($_POST['question_id'][$question_count]) ? intval($_POST['question_id'][$question_count]) : null;
-            $question = sanitize_text_field($_POST['question'][$question_count]);
-            $question_order = intval($_POST['question_order'][$question_count]);
-            $question_category = intval($_POST['question_category'][$question_count]);
-            $response_type_id = intval($_POST['response_type_id'][$question_count]);
+        if (true) {
+            // Guardar las preguntas (nuevas y actualizadas)
+            foreach ($question_list as $key => $value) {
+                $question_id = !empty($_POST['question_id'][$question_count]) ? intval($_POST['question_id'][$question_count]) : null;
+                $question = sanitize_text_field($_POST['question'][$question_count]);
+                $question_order = intval($_POST['question_order'][$question_count]);
+                $question_category = intval($_POST['question_category'][$question_count]);
+                $response_type_id = intval($_POST['response_type_id'][$question_count]);
 
-            $data_prepared = [
-                'section_id' => $section_id,
-                'category_id' => $question_category,
-                'question' => $question,
-                'order' => $question_order,
-                'response_type_id' => $response_type_id
-            ];
+                $data_prepared = [
+                    'section_id' => $section_id,
+                    'category_id' => $question_category,
+                    'question' => $question,
+                    'order' => $question_order,
+                    'response_type_id' => $response_type_id
+                ];
 
-            $format = ['%d', '%d', '%s', '%d', '%d'];
-            
-            if ($question_id) {
-                // Actualizar pregunta existente
-                $result = $wpdb->update(
-                    "{$wpdb->prefix}lg_questions",
-                    $data_prepared,
-                    ['question_id' => $question_id],
-                    $format,
-                    ['%d']
-                );
-            } else {
-                // Insertar nueva pregunta
-                $result = $wpdb->insert("{$wpdb->prefix}lg_questions", $data_prepared, $format);
+                $format = ['%d', '%d', '%s', '%d', '%d'];
+                
+                if ($question_id) {
+                    // Actualizar pregunta existente
+                    $result = $wpdb->update(
+                        "{$wpdb->prefix}lg_questions",
+                        $data_prepared,
+                        ['question_id' => $question_id],
+                        $format,
+                        ['%d']
+                    );
+                } else {
+                    // Insertar nueva pregunta
+                    $result = $wpdb->insert("{$wpdb->prefix}lg_questions", $data_prepared, $format);
+                }
+
+
+                if ($result === false) {
+                    $errors = true;
+                    $error_messages[] = $wpdb->last_error;
+                }
+
+                $question_count++;
             }
-
-
-            if ($result === false) {
-                $errors = true;
-                $error_messages[] = $wpdb->last_error;
-            }
-
-            $question_count++;
         }
 
         if ($errors) {
             $error_message_text = implode('<br>', $error_messages);
-            $message = '
+            $message .= '
                 <div id="message" class="notice error">
                     <p><strong>Hubo un error al guardar las preguntas:</strong></p>
                     <p>' . $error_message_text . '</p>
                 </div>
             ';
         } else {
-            $message = '
+            $message .= '
                 <div id="message" class="notice updated">
                     <p><strong>Preguntas guardadas correctamente.</strong></p>
                 </div>
             ';
         }
-
     }
 
     // PETICIONES GET
