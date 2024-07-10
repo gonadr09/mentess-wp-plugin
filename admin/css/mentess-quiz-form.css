@@ -1,3 +1,23 @@
+/* Container result */
+@media (min-width: 1140px) {
+  .lg-container {
+    max-width: 1140px !important;
+    margin: auto;
+  } 
+}
+
+#quiz-responses-submit {
+  position: -webkit-sticky; /* For Safari */
+  position: sticky;
+  bottom: 20px;
+}
+
+/* Select */
+.form-group select {
+  padding: 5px 10px;
+}
+
+/* Radios */
 .radio-input {
   display: flex;
   flex-direction: column;
@@ -51,6 +71,7 @@
 }
 .radio-input .label .text {
   /* color: #fff; */
+  margin-bottom: 0px;
 }
 
 .radio-input .label input[type='radio'] {

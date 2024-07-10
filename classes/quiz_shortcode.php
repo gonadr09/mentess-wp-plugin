@@ -96,10 +96,10 @@
         public function form_open($quiz_id, $quiz_title, $user_quiz_id) {
             $html = "
                 <br>
-                <div class='wrap container'>
-                    <h1>$quiz_title</h1>
+                <div class='wrap lg-container'>
+                    <h1 class='text-center'>$quiz_title</h1>
                     <br>
-                    <form method='POST'>
+                    <form method='POST' class='mb-4'>
                     <input type='hidden' name='quiz_id' value='$quiz_id'>
                     
             ";
@@ -112,7 +112,12 @@
 
         public function form_close() {
             $html = "
-                    <input type='submit' id='quiz-responses-submit' name='quiz-responses-submit' class='btn btn-primary page-title-action' value='Enviar'>
+                    <button type='submit' id='quiz-responses-submit' name='quiz-responses-submit' class='btn btn-primary page-title-action'>
+                        Enviar formulario 
+                        <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-send-fill' viewBox='0 0 16 16'>
+                        <path d='M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471z'/>
+                        </svg>
+                    </button>
                 </form>
             </div>  
             ";
@@ -120,27 +125,31 @@
         }
 
 
-        function from_input($value, $options_by_type){
+        function from_input($value, $options_by_type, $user_responses_map){
             $question_id = $value['question_id'];
             $question = $value['question'];
             $order = $value['order'];
             $response_type_id = $value['response_type_id'];
             $response_type = $value['response_type'];
 
+            $user_response_value = isset($user_responses_map[$question_id]) ? $user_responses_map[$question_id]['response_value'] : null;
+            $user_response_text = isset($user_responses_map[$question_id]) ? $user_responses_map[$question_id]['response_text'] : null;
+
             $html = "";
             if ($response_type == "select"){
                 $html = "
-                    <div class='form-group'>
+                    <div id='question-$question_id' class='form-group'>
                         <label for='$question_id' class='form-label'> $order) $question</label>
-                        <select class='form-select' id='$question_id' name='$question_id' required>
+                        <select class='form-select' id='$question_id' name='$question_id'>
                             <option selected disabled value=''>-- Elige una opción --</option>
                 ";
                 if (isset($options_by_type[$response_type_id])) {
                     foreach ($options_by_type[$response_type_id] as $option) {
                         $response_option_id = $option['response_option_id'];
                         $response_text = $option['response_text'];
-                        $response_value = $option['response_value'];        
-                        $html .= "<option value='$response_value~$response_text'>$response_text</option>";
+                        $response_value = $option['response_value'];
+                        $selected = ($response_value == $user_response_value) ? "selected" : "";
+                        $html .= "<option value='$response_value~$response_text' $selected>$response_text</option>";
                     }
                 }
                 $html .= "
@@ -149,7 +158,7 @@
                 ";
             } elseif ($response_type == "radio"){
                 $html = "
-                    <div class='radio-input'>
+                    <div id='question-$question_id' class='radio-input'>
                         <p class='form-label'> $order) $question</p>
                         <div class='combo-radio'>
                 ";
@@ -158,6 +167,7 @@
                         $response_option_id = $option['response_option_id'];
                         $response_text = $option['response_text'];
                         $response_value = $option['response_value'];
+                        $checked = ($response_value == $user_response_value) ? "checked" : "";
                         /* <div class='form-check form-check-inline border'>
                                 <input class='form-check-input' type='radio' name='$question_id' id='$question_id-$response_option_id' autocomplete='off' value='$response_value~$response_text'>
                                 <label class='form-check-label' for='$question_id-$response_option_id'>$response_text</label>
@@ -165,7 +175,7 @@
                               <label class="label"> */
                         $html .= "
                             <label class='label'>
-                                <input type='radio' id='$question_id-$response_option_id' name='$question_id' value='$response_value~$response_text' />
+                                <input type='radio' id='$question_id-$response_option_id' name='$question_id' value='$response_value~$response_text' $checked/>
                                 <p class='text'>$response_text</p>
                             </label>
                         ";
@@ -176,16 +186,16 @@
                 ";
             } elseif ($response_type == 'number') {
                 $html = "
-                <div class='form-group'>
+                <div id='question-$question_id' class='form-group'>
                     <label for='$question_id' class='form-label'>$order) $question</label>
-                    <input type='number' class='form-control' name='$question_id' id='$question_id' required>
+                    <input type='number' class='form-control' name='$question_id' id='$question_id' value='$user_response_text'>
                 </div><br>
             ";
             } else {
                 $html = "
-                    <div class='form-group'>
+                    <div id='question-$question_id' class='form-group'>
                         <label for='$question_id' class='form-label'>$order) $question</label>
-                        <input type='text' class='form-control' name='$question_id' id='$question_id' required>
+                        <input type='text' class='form-control' name='$question_id' id='$question_id' value='$user_response_text'>
                     </div><br>
                 ";
             }
@@ -324,16 +334,23 @@
 
                 $html_section_begin = "
                     <div>
-                        <h3>Sección $order: $name</h3><br>
+                        <h3 style='color: #3879F1'>Sección $order: $name</h3><br>
                 ";
-                $html_section_end = "<div><br>";
+                $html_section_end = "</div><br>";
 
                 // Obtener todas las preguntas de la sección
                 $html_questions = "";
                 $questions_list = $this->get_questions_of_section($section_id);
                 $options_by_type = $this->get_response_options_by_type();
+
+                # Crear array asociativo de respuestas del usuario {question_id: respuesta}
+                $user_responses = $this->get_user_responses($user_quiz_id);
+                $user_responses_map = [];
+                foreach ($user_responses as $response) {
+                    $user_responses_map[$response['question_id']] = $response;
+                }
                 foreach ($questions_list as $key => $value) {
-                    $html_questions .= $this->from_input($value, $options_by_type);
+                    $html_questions .= $this->from_input($value, $options_by_type, $user_responses_map);
                 }
 
                 $html_sections .= $html_section_begin;
@@ -395,55 +412,69 @@
                         // Separar el valor de la respuesta del texto de la respuesta (ejemplo: '2~Sí')
                         list($response_value, $response_text) = explode('~', $input_value);
     
-                        $data_prepared = [
-                            'user_quiz_id' => $user_quiz_id,
-                            'question_id' => $question_id,
-                            'response_text' => $response_text,
-                            'response_value' => intval($response_value)
-                        ];
+                        // Verificar que response_value y response_text no estén vacíos
+                        if ($response_value !== '' && $response_text !== '') {
+                            $data_prepared = [
+                                'user_quiz_id' => $user_quiz_id,
+                                'question_id' => $question_id,
+                                'response_text' => $response_text,
+                                'response_value' => intval($response_value)
+                            ];
+                        }
                     } else {
                         $response_text = $post[$question_id];
-                        $data_prepared = [
-                            'user_quiz_id' => $user_quiz_id,
-                            'question_id' => $question_id,
-                            'response_text' => $response_text,
-                            'response_value' => 0,
-                        ];
+                        // Verificar que response_text no esté vacío
+                        if ($response_text !== '') {
+                            $data_prepared = [
+                                'user_quiz_id' => $user_quiz_id,
+                                'question_id' => $question_id,
+                                'response_text' => $response_text,
+                                'response_value' => 0,
+                            ];
+                        }
                     }
-                    $format = ['%d', '%d', '%s', '%d'];
-    
-                    $user_response = $this->get_user_response($user_quiz_id, $question_id);
-    
-                    $table = "{$wpdb->prefix}lg_user_responses";
-                    if ($user_response) {
-                        // Actualizar respuesta-pregunta existente
-                        $result = $wpdb->update(
-                            $table,
-                            $data_prepared,
-                            ['response_id' => $user_response['response_id']],
-                            $format,
-                            ['%d']
-                        );
-                    } else {
-                        // Insertar nueva respuesta-pregunta
-                        $result = $wpdb->insert($table, $data_prepared, $format);
-                    }
-            
-                    if ($result === false) {
-                        $error_messages[] = $wpdb->last_error;
-                        $error_message_text = implode('<br>', $error_messages);
-                        $message = '
-                            <div id="message" class="notice error">
-                                <p><strong>Hubo un error al responder la encuesta:</strong></p>
-                                <p>' . $error_message_text . '</p>
+
+                    // Si data_prepared no está vacío, guardar en la base de datos
+                    if (!empty($data_prepared)) {
+                        $format = ['%d', '%d', '%s', '%d'];
+        
+                        $user_response = $this->get_user_response($user_quiz_id, $question_id);
+        
+                        $table = "{$wpdb->prefix}lg_user_responses";
+                        if ($user_response) {
+                            // Actualizar respuesta-pregunta existente
+                            $result = $wpdb->update(
+                                $table,
+                                $data_prepared,
+                                ['response_id' => $user_response['response_id']],
+                                $format,
+                                ['%d']
+                            );
+                        } else {
+                            // Insertar nueva respuesta-pregunta
+                            $result = $wpdb->insert($table, $data_prepared, $format);
+                        }
+                
+                        if ($result === false) {
+                            $error_messages[] = $wpdb->last_error;
+                            $error_message_text = implode('<br>', $error_messages);
+                            $message = '
+                                <div class="lg-container mt-4">
+                                    <div id="message" class="alert alert-danger mb-0">
+                                        <strong>Hubo un error al responder la encuesta:</strong>
+                                        <small>' . $error_message_text . '</small>
+                                    </div>
+                                </div>
+                            ';
+                        } else {
+                            $message = '
+                            <div class="lg-container mt-4">
+                                <div id="message" class="alert alert-primary mb-0" role="alert">
+                                    Respuestas guardadas correctamente. Aún te quedan preguntas por responder para finalizar el cuestionario.
+                                </div>
                             </div>
                         ';
-                    } else {
-                        $message = '
-                        <div id="message" class="notice updated">
-                            <p><strong>Respuestas correctamente guardadas.</strong></p>
-                        </div>
-                    ';
+                        }
                     }
                 }
             }
@@ -452,6 +483,9 @@
 
             if ($is_quiz_completed) {
                 $message = $this->show_results($quiz_id, $user_quiz_id);
+                return $message;
+            } else {
+                $message .= $this->quiz_html_builder($quiz_id);
                 return $message;
             }
 
@@ -479,16 +513,20 @@
             }
             $html_result = "
                 <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
-                <script src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js' integrity='sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==' crossorigin='anonymous' referrerpolicy='no-referrer'></script>
 
-                <button id='generate-pdf'>New Generar PDF</button>
+                <div id='pdf' class='mt-3 lg-container'>
+                    <div class='d-flex justify-content-center justify-content-md-end'>
+                        <button id='generate-pdf' class='btn btn-sm btn-danger'>
+                            <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-file-earmark-pdf-fill' viewBox='0 0 16 16'>
+                            <path d='M5.523 12.424q.21-.124.459-.238a8 8 0 0 1-.45.606c-.28.337-.498.516-.635.572l-.035.012a.3.3 0 0 1-.026-.044c-.056-.11-.054-.216.04-.36.106-.165.319-.354.647-.548m2.455-1.647q-.178.037-.356.078a21 21 0 0 0 .5-1.05 12 12 0 0 0 .51.858q-.326.048-.654.114m2.525.939a4 4 0 0 1-.435-.41q.344.007.612.054c.317.057.466.147.518.209a.1.1 0 0 1 .026.064.44.44 0 0 1-.06.2.3.3 0 0 1-.094.124.1.1 0 0 1-.069.015c-.09-.003-.258-.066-.498-.256M8.278 6.97c-.04.244-.108.524-.2.829a5 5 0 0 1-.089-.346c-.076-.353-.087-.63-.046-.822.038-.177.11-.248.196-.283a.5.5 0 0 1 .145-.04c.013.03.028.092.032.198q.008.183-.038.465z'/>
+                            <path fill-rule='evenodd' d='M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2m5.5 1.5v2a1 1 0 0 0 1 1h2zM4.165 13.668c.09.18.23.343.438.419.207.075.412.04.58-.03.318-.13.635-.436.926-.786.333-.401.683-.927 1.021-1.51a11.7 11.7 0 0 1 1.997-.406c.3.383.61.713.91.95.28.22.603.403.934.417a.86.86 0 0 0 .51-.138c.155-.101.27-.247.354-.416.09-.181.145-.37.138-.563a.84.84 0 0 0-.2-.518c-.226-.27-.596-.4-.96-.465a5.8 5.8 0 0 0-1.335-.05 11 11 0 0 1-.98-1.686c.25-.66.437-1.284.52-1.794.036-.218.055-.426.048-.614a1.24 1.24 0 0 0-.127-.538.7.7 0 0 0-.477-.365c-.202-.043-.41 0-.601.077-.377.15-.576.47-.651.823-.073.34-.04.736.046 1.136.088.406.238.848.43 1.295a20 20 0 0 1-1.062 2.227 7.7 7.7 0 0 0-1.482.645c-.37.22-.699.48-.897.787-.21.326-.275.714-.08 1.103'/>
+                            </svg>
+                            Exportar a PDF
+                        </button>
+                    </div>
 
-                <button onclick='generatePDF()'>Generar PDF JS</button>
-                <a href=". esc_url(add_query_arg(['generate_pdf' => 1, 'user_quiz_id' => $user_quiz_id])) ." target='_blank' class='button'>Generar PDF PHP</a>
-
-                <div id='pdf' class=''>
                     <div data-pdf='quiz-title-section'>
-                        <h1 class='text-center mt-5 mb-2' style='color: #4275DD;'>$quiz_name</h1>
+                        <h1 class='text-center mt-2 mb-2' style='color: #4275DD;'>$quiz_name</h1>
                         <h5 class='text-center mb-3' style='color: #4275DD'>Evaluación para la orientación profesional</h5>
                     </div>
             ";
@@ -501,7 +539,7 @@
                     <div data-pdf='general-answers-section'>
                         <h2 class='text-center'>Sección " . $section['order'] . ": ". $section['name'] ."</h2>
                         <h6 class='text-center'>" . $section['description'] . "</h6>
-                        <div class='col-9 mx-auto'>
+                        <div class='col-lg-9 mx-auto'>
                             <table class='table table-striped table-bordered'>
                                 <tbody>
                                     ". $html_general_answer ."
@@ -631,33 +669,34 @@
             }
 
             $html = '
-                <div class="col-12 col-lg-6 mx-auto">
-
-                    <img class="chart-image" id="chart-image-'. $section_id .'" src="" style="display: block;">
-                    <canvas class="canvas-chart" id="chart-'. $section_id .'" data-pdf="canvas-chart"></canvas>
-
-                    <script type="text/javascript">
-                        let chart_data_labels'. $section_id .' = '. json_encode($chart_data_labels) .';
-                        let chart_data_values'. $section_id .' = '. json_encode($chart_data_values) .';
-
-                        let ctx'. $section_id .' = document.getElementById("chart-'. $section_id .'");
-                        let chart'. $section_id .' = new Chart(ctx'. $section_id .', {
-                            type: "'. $chart_type .'",
-                            data: {
-                                labels: chart_data_labels'. $section_id .',
-                                datasets: [{
-                                    label: "'. $section_name .'",
-                                    data: chart_data_values'. $section_id .',
-                                }],
-                            },
-                            options: {
-                                indexAxis: "y",
-                                '. $min_param .'
-                            }
-                        });
-                    </script>
-
+                <div class="col-12 col-lg-8 mx-auto" style="overflow: auto">
+                    <div class="chart-container mx-auto" style="position: relative; height: 300px; width: 500px">
+                        <canvas class="canvas-chart" id="chart-'. $section_id .'" data-pdf="canvas-chart"></canvas>
+                    </div>
                 </div>
+
+                <script type="text/javascript">
+                    let chart_data_labels'. $section_id .' = '. json_encode($chart_data_labels) .';
+                    let chart_data_values'. $section_id .' = '. json_encode($chart_data_values) .';
+
+                    let ctx'. $section_id .' = document.getElementById("chart-'. $section_id .'");
+                    let chart'. $section_id .' = new Chart(ctx'. $section_id .', {
+                        type: "'. $chart_type .'",
+                        data: {
+                            labels: chart_data_labels'. $section_id .',
+                            datasets: [{
+                                label: "'. $section_name .'",
+                                data: chart_data_values'. $section_id .',
+                            }],
+                        },
+                        options: {
+                            indexAxis: "y",
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            '. $min_param .'
+                        }
+                    });
+                </script>
             ';
 
             /*

@@ -78,6 +78,19 @@
     if(empty($user_quiz_list)) {
         $user_quiz_list = array();
     }
+
+    $results_page = get_posts(array(
+        'post_type'      => 'page',
+        'post_status'    => 'publish',
+        'slug'           => 'resultados-de-la-encuesta',
+        'posts_per_page' => 1,
+    ));
+
+    if ($results_page) {
+        $results_page = get_permalink($results_page[0]->ID);
+    } else {
+        $results_page = '#';
+    }
 ?>
 
 <div class="wrap">
@@ -115,6 +128,8 @@
                     $user_email = $value['user_email'];
                     $display_name = $value['display_name'];
                     $name = $value['name'];
+                    $results_url = add_query_arg('user_quiz_id', $user_quiz_id, $results_page);
+
 
                     echo "
                         <tr id='user-quiz-$user_quiz_id' class=''>
@@ -129,7 +144,7 @@
                         /* <span class='dashicons dashicons-yes-alt' style='color: green'></span></td> */
 
                         echo "
-                            <a href='encuesta?user_quiz_id=$user_quiz_id' class='button' target='_blank' aria-label='Resultado'>
+                            <a href='$results_url' class='button' target='_blank' aria-label='Resultado'>
                                 Ver
                             </a>
                         ";

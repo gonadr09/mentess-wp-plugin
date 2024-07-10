@@ -167,17 +167,17 @@
                 </tr>
                 <tr class='form-required'>
                     <th scope='row'><label for='title_result'>Título del resultado</label></th>
-                    <td><input class='regular-text' name='title_result' type='text' id='title_result' required value='<?php echo esc_attr($title_result); ?>'></td>
+                    <td><input class='regular-text' name='title_result' type='text' id='title_result' value='<?php echo esc_attr($title_result); ?>'></td>
                 </tr>
 
                 <tr class='form-required'>
                     <th scope='row'><label for='subtitle_result'>Subtítulo del resultado</label></th>
-                    <td><input class='regular-text' name='subtitle_result' type='text' id='subtitle_result' required value='<?php echo esc_attr($subtitle_result); ?>'></td>
+                    <td><input class='regular-text' name='subtitle_result' type='text' id='subtitle_result' value='<?php echo esc_attr($subtitle_result); ?>'></td>
                 </tr>
                 <tr class='form-required'>
                     <th scope='row'><label for='text_result'>Texto del resultado</label></th>
                     <td>
-                        <textarea class='large-text' name='text_result' type='text' id='text_result' rows='8' required value='<?php echo esc_attr($text_result); ?>'><?php echo esc_attr($text_result); ?></textarea>
+                        <textarea class='large-text' name='text_result' type='text' id='text_result' rows='8' value='<?php echo esc_attr($text_result); ?>'><?php echo esc_attr($text_result); ?></textarea>
                     </td>
                 </tr>
             </tbody>

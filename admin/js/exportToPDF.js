@@ -1,94 +1,3 @@
-/* async function generatePDF() {
-    const { jsPDF } = window.jspdf;
-    const element = document.getElementById("pdf");
-
-    // Ajustar el tamaño del elemento temporalmente para la impresión
-    element.classList.add("pdf-width");
-
-    // Capturar el elemento como imagen con html2canvas
-    const canvas = await html2canvas(element, { scale: 2 });
-    const imgData = canvas.toDataURL("image/png");
-
-    // Crear una instancia de jsPDF
-    const pdf = new jsPDF("p", "mm", "a4");
-
-    // Calcular las dimensiones de la imagen y del PDF
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-    // Añadir la imagen al PDF
-    let yPos = 0;
-    while (yPos < imgProps.height) {
-        pdf.addImage(imgData, "PNG", 0, yPos, pdfWidth, pdfHeight);
-        yPos += pdfHeight;
-        if (yPos < imgProps.height) {
-            pdf.addPage();
-        }
-    }
-
-    // Guardar el PDF
-    pdf.save("1er-jsPDF.pdf");
-
-    // Restaurar el tamaño del elemento como estaba antes
-    element.classList.remove("pdf-width");
-} */
-
-    // Generar pdf sacando un print de pantalla completo como imagen 
-    async function generatePDF() {
-        const { jsPDF } = window.jspdf;
-        const element = document.getElementById('pdf');
-
-        if (!element) {
-            console.error("El elemento con ID 'content' no se encontró.");
-            return;
-        }
-
-        try {
-            const canvas = await html2canvas(element, { scale: 2 });
-            const imgData = canvas.toDataURL('image/png');
-
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'pt',
-                format: 'a4'
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-
-            const imgProps = pdf.getImageProperties(imgData);
-            const imgWidth = imgProps.width;
-            const imgHeight = imgProps.height;
-
-            const pageHeight = pdfHeight;
-            const scale = pdfWidth / imgWidth;
-            const scaledHeight = imgHeight * scale;
-
-            let position = 0;
-            let heightLeft = scaledHeight;
-
-            while (heightLeft > 0) {
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, scaledHeight);
-                heightLeft -= pageHeight;
-                position = heightLeft > 0 ? position - pageHeight : position;
-                if (heightLeft > 0) {
-                    pdf.addPage();
-                }
-            }
-
-            pdf.save('documento.pdf');
-        } catch (error) {
-            console.error("Error al generar el PDF: ", error);
-        }
-    }
-
-
-
-
-
-
-
     async function generatePDFv2() {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({
@@ -98,6 +7,7 @@
         });
         
         const element = document.querySelector('#pdf')
+        //element.style.width = '1200px'
 
         // Estilos
         const h1 = {
@@ -284,16 +194,15 @@
 
             addStyledText(pdf, sectionTitle, middleWidth, currentY, h2);
             addStyledText(pdf, sectionContent, middleWidth, currentY, h6);
+            currentY += 20
 
             // Textos de categorias ganadoras
             const winnersCategories = section.querySelectorAll('[data-pdf="category-winner-text-section"]');
             winnersCategories.forEach((winnerCategory) => {
                 const img = winnerCategory.querySelector('img');
-                console.log(img)
                 const title = winnerCategory.querySelector('h3').innerText;
                 const subtitle = winnerCategory.querySelector('h4').innerText;
                 const paragraph = winnerCategory.querySelector('p').innerText;
-                console.log(canvasChart)
 
                 // Renderiza la imagen
                 if (img) {
@@ -307,7 +216,7 @@
                 addStyledText(pdf, title, marginStart, currentY, h3);
                 addStyledText(pdf, subtitle, marginStart, currentY, h4);
                 addStyledText(pdf, paragraph, marginStart, currentY, p);
-                currentY += 20
+                currentY += 10
             })
 
             // Renderiza el canvas
@@ -331,7 +240,7 @@
             
         })
                
-        pdf.save('newPDF.pdf');
+        pdf.save(`resultado-${quizTitle}.pdf`);
     }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -339,5 +248,92 @@ document.addEventListener('DOMContentLoaded', function() {
     const pdfButton = document.getElementById('generate-pdf');
     if (pdfButton) {
         pdfButton.addEventListener('click', generatePDFv2);
-    }
+    }    
 });
+
+
+/* async function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const element = document.getElementById("pdf");
+
+    // Ajustar el tamaño del elemento temporalmente para la impresión
+    element.classList.add("pdf-width");
+
+    // Capturar el elemento como imagen con html2canvas
+    const canvas = await html2canvas(element, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+
+    // Crear una instancia de jsPDF
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    // Calcular las dimensiones de la imagen y del PDF
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    // Añadir la imagen al PDF
+    let yPos = 0;
+    while (yPos < imgProps.height) {
+        pdf.addImage(imgData, "PNG", 0, yPos, pdfWidth, pdfHeight);
+        yPos += pdfHeight;
+        if (yPos < imgProps.height) {
+            pdf.addPage();
+        }
+    }
+
+    // Guardar el PDF
+    pdf.save("1er-jsPDF.pdf");
+
+    // Restaurar el tamaño del elemento como estaba antes
+    element.classList.remove("pdf-width");
+} */
+
+    // Generar pdf sacando un print de pantalla completo como imagen 
+/*     async function generatePDF() {
+        const { jsPDF } = window.jspdf;
+        const element = document.getElementById('pdf');
+
+        if (!element) {
+            console.error("El elemento con ID 'content' no se encontró.");
+            return;
+        }
+
+        try {
+            const canvas = await html2canvas(element, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'pt',
+                format: 'a4'
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+
+            const imgProps = pdf.getImageProperties(imgData);
+            const imgWidth = imgProps.width;
+            const imgHeight = imgProps.height;
+
+            const pageHeight = pdfHeight;
+            const scale = pdfWidth / imgWidth;
+            const scaledHeight = imgHeight * scale;
+
+            let position = 0;
+            let heightLeft = scaledHeight;
+
+            while (heightLeft > 0) {
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, scaledHeight);
+                heightLeft -= pageHeight;
+                position = heightLeft > 0 ? position - pageHeight : position;
+                if (heightLeft > 0) {
+                    pdf.addPage();
+                }
+            }
+
+            pdf.save('documento.pdf');
+        } catch (error) {
+            console.error("Error al generar el PDF: ", error);
+        }
+    }
+ */
