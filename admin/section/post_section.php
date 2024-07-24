@@ -124,7 +124,7 @@
                 </tr>
                 <tr class='form-required'>
                     <th scope='row'><label for='description'>Descripción</label></th>
-                    <td><input class='regular-text' name='description' type='text' id='description' required value='<?php echo esc_attr($description); ?>' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off' maxlength='255'></td>
+                    <td><textarea class='large-text' name='description' type='text' id='description' required value='<?php echo esc_attr($description); ?>' aria-required='true' autocapitalize='none' autocorrect='off' autocomplete='off'><?php echo esc_attr($description); ?></textarea></td>
                 </tr>
                 <tr class='form-required'>
                     <th scope='row'><label for='order'>Orden</label></th>

@@ -125,7 +125,7 @@ function lg_activate_plugin() {
             `section_id` INT NOT NULL AUTO_INCREMENT,
             `quiz_id` INT NOT NULL,
             `name` VARCHAR(45) NOT NULL,
-            `description` VARCHAR(255) NOT NULL,
+            `description` TEXT,
             `order` INT NOT NULL,
             `high_score` INT,
             `low_score` INT,
@@ -241,6 +241,16 @@ function lg_create_admin_menu() {
         'post_quiz_page' // Function to display the submenu page content
     );
 
+    // Crear encuesta de prueba
+    add_submenu_page(
+        null, // Parent slug (same as menu slug of the main menu)
+        'Crear datos de prueba', // Page title
+        'Crear datos de prueba', // Submenu title
+        'manage_options', // Capability
+        'create_quiz_example', // Submenu slug
+        'create_quiz_example' // Function to display the submenu page content
+    );
+
     // Listar secciones
     add_submenu_page(
         'mentess', // Parent slug (same as menu slug of the main menu)
@@ -343,6 +353,11 @@ function post_quiz_page() {
     include plugin_dir_path(__FILE__).'admin/quiz/post_quiz.php';
 }
 
+// Function to display submenu page content
+function create_quiz_example() {
+    include plugin_dir_path(__FILE__).'admin/quiz/create-quiz-example.php';
+}
+
 function section_list_page() {
     include plugin_dir_path(__FILE__).'admin/section/list_section.php';
 }
@@ -425,15 +440,24 @@ function show_shortcode($atts){
         if ($result['quiz_id'] && $result['user_quiz_id']) {
             $html = $_quiz_shortcode_instance->show_results($result['quiz_id'], $result['user_quiz_id']);
         } else {
-            $html = "<h6>Acceso restringido</h6><p>Usted no puede acceder a este resultado.</p>";
+            $html = "<div class='container text-center py-5'><h3>Acceso restringido</h3><h6>Usted no puede acceder a este resultado.</h6></div>";
         }
 
     } else {
-        $html = $_quiz_shortcode_instance->quiz_html_builder($id);
+        $quiz_result = $_quiz_shortcode_instance->get_quiz($id);
+
+        if ($quiz_result == null) {
+            $html = "<div class='container text-center py-5'><h3>Error al mostrar la encuesta</h3><h6>La misma no existe</h6></div>";
+        } elseif (!$quiz_result['is_active']) {
+            $html = "<div class='container text-center py-5'><h3>Imposible ingresar</h3><h6>La encuesta no está activa</h6></div>";
+        } elseif (!$quiz_result['wc_product_id']) {
+            $html = "<div class='container text-center py-5'><h3>Error al mostrar la encuesta</h3><h6>La misma no tiene un producto asociado</h6></div>";
+        } else {
+            $html = $_quiz_shortcode_instance->quiz_html_builder($id);
+        }
     }
 
     return $html;
-
 }
 
 add_shortcode("QUIZ","show_shortcode");

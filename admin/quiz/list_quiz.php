@@ -46,6 +46,7 @@
     echo '<h1 class="wp-heading-inline">' . get_admin_page_title() . '</h1>';
     ?>
     <a href="admin.php?page=post_quiz" class="page-title-action">Añadir nuevo</a>
+    <a href="admin.php?page=create_quiz_example" class="page-title-action">Datos de prueba</a>
     <hr class="wp-header-end">
     <?php 
         if (!empty($message)) {
@@ -120,7 +121,6 @@
                     echo "
                         <td>
                             <div style='display: flex; gap: 10px'>
-                                <a href='admin.php?page=stadistics&quiz-id=$id' class='button button-secondary' aria-label='Resultados'>Resultados</a>
                                 <form method='post' name='delete-question-form' id='delete-question-form' class='validate' novalidate='novalidate'>
                                     <input name='delete-quiz-id' type='hidden' value='$id'>
                                     <input type='hidden' name='delete-quiz-submit' value='Eliminar'>
