@@ -2,82 +2,53 @@
 /*
  * Plugin Name:         Mentess Explorer
  * Plugin URI:          https://scholar-shine.com/
- * Description:         Test Psicométrico Psicológico de Orientación Vocacional creado por Scholar Shine
+ * Description:         Plugin que permite crear cuestionarios basados en el Test Psicométrico Psicológico de Orientación Vocacional de Scholar-Shine
  * Versión:             1.0
  * Requires at least:   6.5.3
  * Requires PHP:        8.1.23
- * Author:              Scholar Shine
- * Author URI:          https://scholar-shine.com/
- * Text Domain:         scholar-shine
+ * Author:              Lúreo Digital
+ * Author URI:          https://lureodigital.com/
+ * Text Domain:         lureodigital
  * Domain Path:         /languages 
 */
 
 // Requires
 require_once dirname(__FILE__) . '/classes/quiz_shortcode.php';
 
-// Incluir Dompdf
-require_once plugin_dir_path(__FILE__) . '/dependencies/dompdf/autoload.inc.php';
-use Dompdf\Dompdf;
+function lg_update_database() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'lg_quizzes';
 
-require_once plugin_dir_path(__FILE__) . '/dependencies/tcpdf/tcpdf.php';
+    // Lista de campos que deseas agregar
+    $new_columns = [
+        'poster_url' => "VARCHAR(255) DEFAULT NULL",
+        'logo_url' => "VARCHAR(255) DEFAULT NULL"
+    ];
 
+    // Verificar y agregar los campos si no existen
+    foreach ($new_columns as $column => $definition) {
+        $column_exists = $wpdb->get_results(
+            $wpdb->prepare(
+                "SHOW COLUMNS FROM `$table_name` LIKE %s",
+                $column
+            )
+        );
 
-// Función para generar PDF
-function generar_pdf() {
-    if (!isset($_GET['generate_pdf']) || !isset($_GET['user_quiz_id'])) {
-        return;
+        if (empty($column_exists)) {
+            $wpdb->query(
+                "ALTER TABLE `$table_name`
+                ADD COLUMN `$column` $definition"
+            );
+
+            if ($wpdb->last_error) {
+                error_log("Error al agregar el campo '$column': " . $wpdb->last_error);
+            }
+        }
     }
-
-    wp_enqueue_style('mentess-quiz-form-css', plugin_dir_url(__FILE__) . 'admin/css/mentess-quiz-form.css');
-    wp_enqueue_style('bootstrap.min', plugin_dir_url(__FILE__) . 'admin/css/bootstrap.min.css');
-
-    $_quiz_shortcode_instance = new quiz_shortcode;
-    $user_quiz_id = isset($_GET['user_quiz_id']) ? intval($_GET['user_quiz_id']) : null;
-
-    if (!$user_quiz_id) {
-        return;
-    }
-
-    $result = $_quiz_shortcode_instance->check_view_by_user_quiz_id($user_quiz_id);
-    $user_quiz_id = $result['user_quiz_id'];
-    $quiz_id = $result['quiz_id'];
-
-    if (!$user_quiz_id || !$quiz_id) {
-        return;
-    }
-    
-    $html_content = $_quiz_shortcode_instance->show_results($result['quiz_id'], $result['user_quiz_id']);
-    
-    // dompdf
-/*     $dompdf = new Dompdf();
-    $dompdf->loadHtml($html_content);
-    $dompdf->setPaper('A4', 'portrait');
-    $dompdf->render();
-    $dompdf->stream('resultado.pdf', array('Attachment' => 0)); */
-
-    // Crear instancia de TCPDF
-    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-    // Establecer información del documento
-    $pdf->SetCreator(PDF_CREATOR);
-    $pdf->SetAuthor('Your Name');
-    $pdf->SetTitle('Resultado del Quiz');
-    $pdf->SetSubject('Resultado del Quiz');
-    $pdf->SetKeywords('Quiz, Resultado, TCPDF, PHP');
-    // Agregar una página
-    $pdf->AddPage();
-    // Escribir el contenido HTML en el documento PDF
-    $pdf->writeHTML($html_content, true, false, true, false, '');
-    // Nombre del archivo PDF para descarga
-    $filename = 'resultado.pdf';
-    // Enviar el PDF al navegador para descarga
-    $pdf->Output($filename, 'D');
-    // Agregar el botón para generar el PDF
-    
-    exit;
 }
+add_action('plugins_loaded', 'lg_update_database');
 
-// Acción para manejar la generación de PDF
-add_action('init', 'generar_pdf');
+
 
 function lg_activate_plugin() {
 
@@ -118,6 +89,7 @@ function lg_activate_plugin() {
             `name` VARCHAR(45) NOT NULL,
             `is_active` BOOLEAN DEFAULT FALSE,
             `wc_product_id` BIGINT(20) UNSIGNED,
+            `poster_url` VARCHAR(255) DEFAULT NULL, /* nuevo campo */
             PRIMARY KEY (`quiz_id`),
             FOREIGN KEY (`wc_product_id`) REFERENCES {$wpdb->prefix}posts(`ID`) ON DELETE SET NULL
         ) $charset_collate;",
@@ -333,12 +305,22 @@ function lg_create_admin_menu() {
 
     // Página encuestas respondidas
     add_submenu_page(
-        'mentess', // No se muestra en el menú
+        'mentess',
         'Encuestas respondidas', // Page title
         'Encuestas respondidas', // Submenu title
         'manage_options', // Capability
         'user_quiz_list', // Submenu slug
         'user_quiz_list_page' // Function to display the submenu page content
+    );
+
+    // Página exportar a CSV
+    add_submenu_page(
+        'mentess', 
+        'Exportar a CSV', // Page title
+        'Exportar a CSV', // Submenu title
+        'manage_options', // Capability
+        'csv_export', // Submenu slug
+        'csv_export_page' // Function to display the submenu page content
     );
 
 }
@@ -393,6 +375,10 @@ function response_options_page() {
 
 function user_quiz_list_page() {
     include plugin_dir_path(__FILE__).'admin/user_quiz/list_user_quiz.php';
+}
+
+function csv_export_page() {
+    include plugin_dir_path(__FILE__).'admin/csv_export/csv_export.php';
 }
 
 add_action('admin_menu', 'lg_create_admin_menu');
@@ -524,114 +510,3 @@ function lg_enqueue_css() {
 
 // Hook para encolar el CSS en el área de administración
 add_action('admin_enqueue_scripts', 'lg_enqueue_css');
-
-
-/*
-
-    // Crear Tabla Encuestas
-    $sql_lg_quizzes = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_quizzes (
-        `quiz_id` INT NOT NULL AUTO_INCREMENT,
-        `name` VARCHAR(45) NOT NULL,
-        `is_active` BOOLEAN DEFAULT FALSE,
-        `wc_product_id` BIGINT(20) UNSIGNED
-        PRIMARY KEY (`quiz_id`),
-        FOREIGN KEY (`wc_product_id`) REFERENCES {$wpdb->prefix}posts(`ID`) ON DELETE SET NULL
-    ) DEFAULT CHARSET=utf8;";
-    $wpdb->query($sql_lg_quizzes);
-
-    // Crear Tabla Secciones
-    $sql_lg_sections = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_sections (
-        `section_id` INT NOT NULL AUTO_INCREMENT,
-        `quiz_id` INT NOT NULL,
-        `name` VARCHAR(45) NOT NULL,
-        `description` VARCHAR(255) NOT NULL,
-        `order` INT NOT NULL,
-        `high_score` INT,
-        `low_score` INT,
-        `chart_type` ENUM('bar', 'doughnut', 'pie', 'polarArea', 'radar') NOT NULL,
-        PRIMARY KEY (`section_id`),
-        FOREIGN KEY (`quiz_id`) REFERENCES {$wpdb->prefix}lg_quizzes(`quiz_id`) ON DELETE RESTRICT
-    );";
-    $wpdb->query($sql_lg_sections);
-
-    // Crear Tabla Categorías
-    $sql_lg_categories = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_categories (
-        `category_id` INT NOT NULL AUTO_INCREMENT,
-        `section_id` INT NOT NULL,
-        `name` VARCHAR(100) NOT NULL,
-        `title_result` VARCHAR(100) NOT NULL,
-        `subtitle_result` VARCHAR(100) NOT NULL,
-        `text_result` TEXT NOT NULL,
-        `image_url` VARCHAR(255) DEFAULT NULL,
-        PRIMARY KEY (`category_id`),
-        FOREIGN KEY (`section_id`) REFERENCES {$wpdb->prefix}lg_sections(`section_id`) ON DELETE RESTRICT
-    );";
-    $wpdb->query($sql_lg_categories);
-
-    // Crear Tabla Tipo de Respuestas
-    $sql_lg_responses_type = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_responses_type (
-        `response_type_id` INT NOT NULL AUTO_INCREMENT,
-        `name` VARCHAR(45) NOT NULL,
-        `response_type` ENUM('text', 'number', 'select', 'radio') NOT NULL,
-        PRIMARY KEY (`response_type_id`)
-    );";
-    $wpdb->query($sql_lg_responses_type);
-
-    // Crear Tabla Opción de Respuestas
-    $sql_lg_response_options = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_response_options (
-        `response_option_id` INT NOT NULL AUTO_INCREMENT,
-        `response_type_id` INT NOT NULL,
-        `response_text` VARCHAR(100) NOT NULL,
-        `response_value` INT NOT NULL,
-        PRIMARY KEY (`response_option_id`),
-        FOREIGN KEY (`response_type_id`) REFERENCES {$wpdb->prefix}lg_responses_type(`response_type_id`) ON DELETE CASCADE
-    );";
-    $wpdb->query($sql_lg_response_options);
-
-    // Crear Tabla Preguntas
-    $sql_lg_questions = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_questions (
-        `question_id` INT NOT NULL AUTO_INCREMENT,
-        `section_id` INT NOT NULL,
-        `category_id` INT NOT NULL,
-        `question` VARCHAR(255) NOT NULL,
-        `order` INT NOT NULL,
-        `response_type_id` INT NOT NULL,
-        PRIMARY KEY (`question_id`),
-        FOREIGN KEY (`section_id`) REFERENCES {$wpdb->prefix}lg_sections(`section_id`) ON DELETE CASCADE,
-        FOREIGN KEY (`category_id`) REFERENCES {$wpdb->prefix}lg_categories(`category_id`) ON DELETE CASCADE,
-        FOREIGN KEY (`response_type_id`) REFERENCES {$wpdb->prefix}lg_responses_type(`response_type_id`) ON DELETE SET NULL
-    );";
-    $wpdb->query($sql_lg_questions);
-
-
-    // Crear Tabla Encuesta del Usuario
-    $sql_lg_user_quiz = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_user_quiz (
-        `user_quiz_id` INT NOT NULL AUTO_INCREMENT,
-        `user_id` BIGINT(20) UNSIGNED NOT NULL,
-        `quiz_id` INT NOT NULL,
-        `is_complete` BOOLEAN DEFAULT FALSE,
-        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-        `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY (`user_quiz_id`),
-        FOREIGN KEY (`user_id`) REFERENCES {$wpdb->prefix}users(`ID`) ON DELETE RESTRICT,
-        FOREIGN KEY (`quiz_id`) REFERENCES {$wpdb->prefix}lg_quizzes(`quiz_id`) ON DELETE RESTRICT
-    );";
-    $wpdb->query($sql_lg_user_quiz);
-
-    // Crear Tabla Respuestas de Usuario
-    $sql_lg_user_responses = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lg_user_responses (
-        `response_id` INT NOT NULL AUTO_INCREMENT,
-        `user_quiz_id` INT NOT NULL,
-        `question_id` INT NOT NULL,
-        `response_text` VARCHAR(100) NOT NULL,
-        `response_value` INT,
-        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-        `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY (`response_id`),
-        FOREIGN KEY (`user_quiz_id`) REFERENCES {$wpdb->prefix}lg_user_quiz(`user_quiz_id`) ON DELETE CASCADE,
-        FOREIGN KEY (`question_id`) REFERENCES {$wpdb->prefix}lg_questions(`question_id`) ON DELETE RESTRICT
-    );";
-    $wpdb->query($sql_lg_user_responses);
-}
-
-*/

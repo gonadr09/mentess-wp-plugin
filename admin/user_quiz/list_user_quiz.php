@@ -103,6 +103,7 @@
             echo $message;
         }
     ?>
+
     <table class="wp-list-table widefat fixed striped pages">
         <thead>
             <tr>

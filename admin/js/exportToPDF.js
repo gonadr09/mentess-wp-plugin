@@ -8,20 +8,22 @@
         
         const element = document.querySelector('#pdf')
         //element.style.width = '1200px'
-
+        
         // Estilos
+        // azul: #3879F1
+        // negro: #212529
         const h1 = {
             align: 'center',
             size: 40,
             fontStyle: 'bold',
-            color: '#3879F1'
+            color: '#212529'
         };
 
         const h2 = {
             align: 'center',
-            size: 26,
+            size: 36, // tenia 26
             fontStyle: 'bold',
-            color: '#212529'
+            color: '#3879F1'
         };
 
         const h3 = {
@@ -47,14 +49,14 @@
 
         const h6 = {
             align: 'center',
-            size: 14,
+            size: 12,
             fontStyle: 'bold',
             color: '#212529'
         };
 
         const p = {
             align: 'left',
-            size: 13,
+            size: 12,
             fontStyle: 'normal',
             color: '#212529'
         };
@@ -125,18 +127,43 @@
         }
 
 
+        // Portada
+        const poster_img = element.querySelector('#poster_quiz');
+        if (poster_img) {
+            try {
+                // agregar imagen centrada
+                pdf.addImage(poster_img, 'PNG', middleWidth - pageWidth / 2, 0, pageWidth, pdf.internal.pageSize.height);
+                pdf.addPage(); // Agregar una nueva página si no hay suficiente espacio
+                currentY = marginTop; // Reiniciar Y para la nueva página
+            } catch (error) {
+                console.error('Error al agregar la imagen del poster:', error);
+            }
+        }
+
         // Sección del título del cuestionario
+        const logo_img = element.querySelector('#logo_quiz');
+        if (logo_img) {
+            try {
+                // agregar imagen centrada
+                pdf.addImage(logo_img, 'PNG', middleWidth - 80 / 2, currentY, 80, 80);
+                currentY += 120; // Incrementar la posición vertical actual
+                //addImage(pdf, img, marginStart, currentY, img.width, img.height); // Ajusta el tamaño de la imagen según sea necesario
+            } catch (error) {
+                console.error('Error al agregar la imagen del logo:', error);
+            }
+        }
         const titleSection = element.querySelector('[data-pdf="quiz-title-section"]');
         const quizTitle = titleSection.querySelector('h1').innerText;
         const quizSubtitle = titleSection.querySelector('h5').innerText;
         addStyledText(pdf, quizTitle, middleWidth, currentY, h1);
-        currentY -= 15,
-        addStyledText(pdf, quizSubtitle, middleWidth, currentY, h5);
+        currentY -= 20,
+        addStyledText(pdf, quizSubtitle, middleWidth, currentY, h6);
+        currentY += 10,
 
         // Separador
         pdf.setDrawColor(33, 37, 41); // Cambia el color a un azul específico (valores RGB)
         pdf.line(lineXStart, currentY, lineXEnd, currentY);
-        currentY += 35
+        currentY += 65
 
         // Sección de respuestas generales
         const generalSections = element.querySelectorAll('[data-pdf="general-answers-section"]');
@@ -144,7 +171,7 @@
             const sectionTitle = section.querySelector('h2').innerText;
             const sectionContent = section.querySelector('h6').innerText;
             addStyledText(pdf, sectionTitle, middleWidth, currentY, h2);
-            currentY -= 5
+            currentY -= 20
             addStyledText(pdf, sectionContent, middleWidth, currentY, h6);
             
             const table = section.querySelector('tbody')
@@ -188,13 +215,18 @@
         // Scored answers section
         const scoredSections = element.querySelectorAll('[data-pdf="scored-answers-section"]')
         scoredSections.forEach((section) => {
+            // Antes de escribir la sección actual, agrega una nueva página
+            pdf.addPage();
+            currentY = marginTop;
+
             const sectionTitle = section.querySelector('h2').innerText;
             const sectionContent = section.querySelector('h6').innerText;
             const canvasChart = section.querySelector('canvas')
 
             addStyledText(pdf, sectionTitle, middleWidth, currentY, h2);
+            currentY -= 10,
             addStyledText(pdf, sectionContent, middleWidth, currentY, h6);
-            currentY += 20
+            currentY += 10
 
             // Textos de categorias ganadoras
             const winnersCategories = section.querySelectorAll('[data-pdf="category-winner-text-section"]');
@@ -207,7 +239,8 @@
                 // Renderiza la imagen
                 if (img) {
                     try {
-                        addImage(pdf, img, marginStart, currentY, img.width, img.height); // Ajusta el tamaño de la imagen según sea necesario
+                        currentY += 10
+                        addImage(pdf, img, marginStart, currentY, 60, 60); // Ajusta el tamaño de la imagen según sea necesario
                     } catch (error) {
                         console.error('Error al agregar la imagen:', error);
                     }
@@ -216,7 +249,7 @@
                 addStyledText(pdf, title, marginStart, currentY, h3);
                 addStyledText(pdf, subtitle, marginStart, currentY, h4);
                 addStyledText(pdf, paragraph, marginStart, currentY, p);
-                currentY += 10
+                currentY += 5
             })
 
             // Renderiza el canvas
@@ -233,10 +266,11 @@
             }
             // pdf 47
 
-            currentY += 20
-            pdf.setDrawColor(33, 37, 41); // Cambia el color a un azul específico (valores RGB)
-            pdf.line(lineXStart, currentY, lineXEnd, currentY);
-            currentY += 35
+            // Separador
+            //currentY += 20
+            //pdf.setDrawColor(33, 37, 41); // Cambia el color a un azul específico (valores RGB)
+            //pdf.line(lineXStart, currentY, lineXEnd, currentY);
+            //currentY += 35
             
         })
                

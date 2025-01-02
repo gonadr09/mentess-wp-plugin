@@ -526,6 +526,9 @@
                     </div>
 
                     <div data-pdf='quiz-title-section'>
+                        <div class='d-flex justify-content-center'>
+                            <img id='logo_quiz' class='mx-auto' width='70px' src='" . esc_html($quiz['logo_url']) . "'></img>
+                        </div>
                         <h1 class='text-center mt-2 mb-2' style='color: #4275DD;'>$quiz_name</h1>
                         <h5 class='text-center mb-3' style='color: #4275DD'>Evaluación para la orientación profesional</h5>
                     </div>
@@ -537,7 +540,7 @@
                     $html_result .= "
                     <hr class='my-4 col-8 mx-auto'>
                     <div data-pdf='general-answers-section'>
-                        <h2 class='text-center'>Sección " . $section['order'] . ": ". $section['name'] ."</h2>
+                        <h2 class='text-center'>". $section['name'] ."</h2>
                         <h6 class='text-center'>" . $section['description'] . "</h6>
                         <div class='col-lg-9 mx-auto'>
                             <table class='table table-striped table-bordered'>
@@ -560,7 +563,7 @@
 
                     foreach ($results_per_category as $category) {
                         if ($category['section_id'] == $section['section_id']) {
-                            if ($category['total_value'] >= $section['high_score']){
+                            if ($category['total_value'] >= $section['high_score'] && $category['title_result'] != '') {
                                 $html_category_winners .= '
                                 <div class="mt-4" data-pdf="category-winner-text-section">
                                     <img width="100px" src="'. esc_html($category['image_url']) .'"></img>
@@ -569,7 +572,7 @@
                                     <p>'. esc_html($category['text_result']) .'</p>
                                 </div>
                                 ';
-                            } elseif ($category['total_value'] > $score_backup_winner){
+                            } elseif ($category['total_value'] > $score_backup_winner && $category['title_result'] != ''){
                                 $html_backup_winner = '
                                     <div class="mt-4" data-pdf="category-winner-text-section">
                                         <img width="100px" src="'. esc_html($category['image_url']) .'"></img>
@@ -579,7 +582,7 @@
                                     </div>
                                 ';
                                 $score_backup_winner = $category['total_value'];
-                            } elseif ($category['total_value'] == $score_backup_winner){
+                            } elseif ($category['total_value'] == $score_backup_winner && $category['title_result'] != ''){
                                 $html_backup_winner .= '
                                     <div class="mt-4" data-pdf="category-winner-text-section">
                                         <img width="100px" src="'. esc_html($category['image_url']) .'"></img>
@@ -598,7 +601,7 @@
                     $html_result .= '
                     <div data-pdf="scored-answers-section">
                         <hr class="my-4 col-8 mx-auto">
-                        <h2 class="text-center">Sección ' . $section['order'] . ': '. $section['name'] .'</h2>
+                        <h2 class="text-center">'. $section['name'] .'</h2>
                         <h6 class="text-center">' . $section["description"] . '</h6>
                         '. ($html_category_winners ? $html_category_winners : $html_backup_winner) .'
                         '. $this->draw_chart($section, $chart_data_labels, $chart_data_values) .'
@@ -606,6 +609,11 @@
                     ';
                 }
             }
+            $html_result .= '
+            <div>
+                <img id="poster_quiz" class="d-none" src="' . esc_html($quiz['poster_url']) . '"></img>
+            </div>
+            ';
             return $html_result;
         }
 
@@ -669,7 +677,7 @@
             }
 
             $html = '
-                <div class="col-12 col-lg-8 mx-auto" style="overflow: auto">
+                <div class="col-12 col-lg-8 mx-auto mt-3" style="overflow: auto">
                     <div class="chart-container mx-auto" style="position: relative; height: 300px; width: 500px">
                         <canvas class="canvas-chart" id="chart-'. $section_id .'" data-pdf="canvas-chart"></canvas>
                     </div>

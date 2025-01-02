@@ -7,7 +7,40 @@
         $name_post = sanitize_text_field($_POST['name']);
         $is_active_post = isset($_POST['is_active']) ? 1 : 0;
         $wc_product_id_post = intval($_POST['wc_product_id']);
+        $poster_url = !empty($_POST['poster_url']) ? sanitize_text_field($_POST['poster_url']) : null;
+        $logo_url = !empty($_POST['logo_url']) ? sanitize_text_field($_POST['logo_url']) : null;
         //$shortcode_post = sanitize_text_field($_POST['shortcode']) ? $quiz_id_post : null;
+
+        // Procesar la imagen subida
+        if (!empty($_FILES['poster_image']['name'])) {
+            if ($_FILES['poster_image']['error'] == 0) {
+                $upload_dir = wp_upload_dir();
+                $upload_path = $upload_dir['path'] . '/' . basename($_FILES['poster_image']['name']);
+                
+                if (move_uploaded_file($_FILES['poster_image']['tmp_name'], $upload_path)) {
+                    $poster_url = $upload_dir['url'] . '/' . basename($_FILES['poster_image']['name']);
+                } else {
+                    echo "Hubo un error al subir la imagen de portada.";
+                }
+            } else {
+                echo "Hubo un error con la subida de la imagen de portada.";
+            }
+        }
+        
+        if (!empty($_FILES['logo_image']['name'])) {
+            if ($_FILES['logo_image']['error'] == 0) {
+                $upload_dir = wp_upload_dir();
+                $upload_path = $upload_dir['path'] . '/' . basename($_FILES['logo_image']['name']);
+                
+                if (move_uploaded_file($_FILES['logo_image']['tmp_name'], $upload_path)) {
+                    $logo_url = $upload_dir['url'] . '/' . basename($_FILES['logo_image']['name']);
+                } else {
+                    echo "Hubo un error al subir la imagen del logo.";
+                }
+            } else {
+                echo "Hubo un error con la subida de la imagen del logo.";
+            }
+        }
 
         //print_r($shortcode_post);
 
@@ -27,9 +60,11 @@
             'name' => $name_post,
             'wc_product_id' => $wc_product_id_post,
             'is_active' => $is_active_post,
+            'poster_url' => $poster_url,
+            'logo_url' => $logo_url
         ];
 
-        $format = ['%s', '%d', '%d'];
+        $format = ['%s', '%d', '%d', '%s', '%s'];
         
         if ($quiz_id_post) {
             // Actualizar encuesta existente
@@ -72,6 +107,8 @@
     $wc_product_id = '';
     $post_title = '';
     $title = 'Agregar';
+    $logo_url = '';
+    $poster_url = '';
 
     $product_list = $wpdb->get_results("
         SELECT ID, post_title, post_type FROM {$wpdb->prefix}posts WHERE post_type = 'product'
@@ -83,7 +120,7 @@
 
     if ($id > 0) {
         $query = $wpdb->prepare("
-        SELECT q.quiz_id, q.name, q.is_active, q.wc_product_id, p.post_title
+        SELECT q.quiz_id, q.name, q.is_active, q.wc_product_id, p.post_title, q.poster_url, q.logo_url
         FROM {$wpdb->prefix}lg_quizzes q
         LEFT JOIN {$wpdb->prefix}posts p ON q.wc_product_id = p.ID
         WHERE q.quiz_id = %d
@@ -99,6 +136,8 @@
             $wc_product_id = $quiz['wc_product_id'];
             $post_title = $quiz['post_title'];
             $title = "Editar";
+            $poster_url = $quiz['poster_url'];
+            $logo_url = $quiz['logo_url'];
         }
     }
 ?>
@@ -111,7 +150,7 @@
             echo $message;
         }
     ?>
-    <form method='post' name='quiz-post' id='quiz-post' class='validate'>
+    <form method='post' name='quiz-post' id='quiz-post' class='validate' enctype="multipart/form-data">
         <input name='action' type='hidden' value='quiz-post'>
         <?php if ($id > 0) : ?>
             <input name='quiz_id' type='hidden' value='<?php echo esc_attr($id); ?>'>
@@ -147,6 +186,21 @@
                                 }
                             ?>
                         </select>
+                    </td>
+                </tr>
+                <tr>
+                <th scope='row'><label for='image'>Portada</label></th>
+                    <td>
+                        <img width="100px" src='<?php echo esc_attr($poster_url); ?>'><br>
+                        <input type='file' name='poster_image' id='poster_image' accept='image/*'>
+                        <input type='hidden' name='poster_url' value='<?php echo esc_attr($poster_url); ?>'>
+                    </td>
+                </tr>
+                <th scope='row'><label for='image'>Logo</label></th>
+                    <td>
+                        <img width="100px" src='<?php echo esc_attr($logo_url); ?>'><br>
+                        <input type='file' name='logo_image' id='logo_image' accept='image/*'>
+                        <input type='hidden' name='logo_url' value='<?php echo esc_attr($logo_url); ?>'>
                     </td>
                 </tr>
                 <tr class='form-field'>
