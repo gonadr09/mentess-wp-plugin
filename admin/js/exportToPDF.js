@@ -228,6 +228,19 @@
             addStyledText(pdf, sectionContent, middleWidth, currentY, h6);
             currentY += 10
 
+            // Renderiza el canvas
+            if (canvasChart) {
+                const canvasData = canvasChart.toDataURL('image/png');
+
+                // Calcula la altura proporcional manteniendo la relación de aspecto
+                const originalWidth = canvasChart.width;
+                const originalHeight = canvasChart.height;
+                const scaledWidth = pageWidth - 80;
+                const scaledHeight = (scaledWidth * originalHeight) / originalWidth;
+
+                addCanvas(pdf, canvasData, marginStart, currentY, pageWidth - 80, scaledHeight);
+            }
+
             // Textos de categorias ganadoras
             const winnersCategories = section.querySelectorAll('[data-pdf="category-winner-text-section"]');
             winnersCategories.forEach((winnerCategory) => {
@@ -252,18 +265,6 @@
                 currentY += 5
             })
 
-            // Renderiza el canvas
-            if (canvasChart) {
-                const canvasData = canvasChart.toDataURL('image/png');
-
-                // Calcula la altura proporcional manteniendo la relación de aspecto
-                const originalWidth = canvasChart.width;
-                const originalHeight = canvasChart.height;
-                const scaledWidth = pageWidth - 80;
-                const scaledHeight = (scaledWidth * originalHeight) / originalWidth;
-
-                addCanvas(pdf, canvasData, marginStart, currentY, pageWidth - 80, scaledHeight);
-            }
             // pdf 47
 
             // Separador
@@ -273,6 +274,39 @@
             //currentY += 35
             
         })
+
+        // Separador
+        currentY += 20
+        //pdf.setDrawColor(33, 37, 41); // Cambia el color a un azul específico (valores RGB)
+        pdf.line(lineXStart, currentY, lineXEnd, currentY);
+        currentY += 35
+
+        // Antes de escribir la sección actual, agrega una nueva página
+        pdf.addPage();
+        currentY = marginTop;
+
+        // End section
+        const endSection = element.querySelector('[data-pdf="end-section"]');
+        const endSectionTitle = endSection.querySelector('h2').innerText;
+        const endSectionContent = endSection.querySelector('p').innerText;
+        const signature = element.querySelector('[data-pdf="signature"]');
+
+        addStyledText(pdf, endSectionTitle, middleWidth, currentY, h2);
+        currentY += 5
+        addStyledText(pdf, endSectionContent, marginStart, currentY, p);
+        currentY += 70
+
+        // // take a screenshot of the signature and add it to the pdf
+        if (signature) {
+            try {
+                const canvas = await html2canvas(signature);
+                const imgData = canvas.toDataURL("image/png");
+                // renderiza canvas en su tamaño original
+                addImage(pdf, imgData, middleWidth - 75, currentY, 145, 150); // Ajusta el tamanho de la imagen segun sea necesario                
+            } catch (error) {
+                console.error('Error al agregar la imagen:', error);
+            }
+        }
                
         pdf.save(`resultado-${quizTitle}.pdf`);
     }

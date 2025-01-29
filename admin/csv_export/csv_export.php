@@ -69,7 +69,7 @@
                 ];
             }
             $key = $row->section_order . '-' . $row->question_order;
-            $user_responses[$user_id]['responses'][$key] = esc_csv($row->response_text ? $row->response_text : $row->response_value);
+            $user_responses[$user_id]['responses'][$key] = esc_csv($row->section_order == '1' ? $row->response_text : $row->response_value);
         }
 
         // Resultados del cuestionario por usuario

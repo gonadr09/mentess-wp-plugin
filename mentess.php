@@ -3,7 +3,7 @@
  * Plugin Name:         Mentess Explorer
  * Plugin URI:          https://scholar-shine.com/
  * Description:         Plugin que permite crear cuestionarios basados en el Test Psicométrico Psicológico de Orientación Vocacional de Scholar-Shine
- * Versión:             1.0
+ * Version:             1.1
  * Requires at least:   6.5.3
  * Requires PHP:        8.1.23
  * Author:              Lúreo Digital
@@ -510,3 +510,115 @@ function lg_enqueue_css() {
 
 // Hook para encolar el CSS en el área de administración
 add_action('admin_enqueue_scripts', 'lg_enqueue_css');
+
+
+// Registrar el script de AJAX
+function mentess_enqueue_ajax_script() {
+    // Asegúrate de que la ruta al script sea correcta
+    wp_enqueue_script('recommend-test-ajax', plugin_dir_url(__FILE__) . 'admin/js/recommend-test-ajax.js', array('jquery'), null, true);
+
+    // Pasar la URL de admin-ajax.php a la función JS
+    wp_localize_script('recommend-test-ajax', 'mentess_ajax_object', array(
+        'ajax_url' => admin_url('admin-ajax.php')
+    ));
+}
+add_action('wp_enqueue_scripts', 'mentess_enqueue_ajax_script');
+
+
+// Procesar la solicitud AJAX
+function mentess_send_invitation_email() {
+    global $wpdb;
+    
+    // Recuperar datos del formulario
+    $email = sanitize_email($_POST['email']);
+    $user_name = sanitize_text_field($_POST['user_name']);
+    $user_lastname = sanitize_text_field($_POST['user_lastname']);
+    $quiz_id = intval($_POST['quiz_id']); // Recuperar el quiz_id desde el input oculto
+
+    // Recuperar la URL del logo del quiz desde la base de datos
+    $quiz = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}lg_quizzes WHERE quiz_id = %d", $quiz_id));
+    $logo_url = !empty($quiz->logo_url) ? esc_url($quiz->logo_url) : '';
+    $logo_img = '<img src="'. esc_url($logo_url) .'" alt="Logo del Test" style="max-width: 60px; height: auto;">';
+
+    // Obtener el logo del sitio web (Scholar-Shine) desde WordPress
+    $site_logo_id = get_theme_mod('custom_logo');
+    $site_logo_url = $site_logo_id ? wp_get_attachment_url($site_logo_id) : '';
+
+    // Definir el correo y el contenido en HTML
+    $subject = '¡Te invitaron a hacer este Test vocacional!';
+    $message = '
+    <html>
+    <head>
+        <title>' . esc_html($subject) . '</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                text-align: center;
+                color: #333;
+            }
+            .email-content {
+                margin: 0 auto;
+                width: 600px;
+                background-color: #f4f4f4;
+                padding: 20px;
+                border-radius: 10px;
+            }
+            .email-header {
+                margin-bottom: 20px;
+            }
+            .email-footer {
+                margin-top: 20px;
+                font-size: 12px;
+                color: #888;
+            }
+            .email-footer img {
+                max-width: 150px;
+            }
+            .text-center {
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="email-content">
+            <div class="email-header">
+                <div class="text-center">' . $logo_img . '</div>
+                <h2 class="text-center">' . esc_html($subject) .'</h2>
+                <p>Hola,</p>
+                <p><strong>' . esc_html($user_name) . ' ' . esc_html($user_lastname) . '</strong> te invita a realizar el <a href="https://scholar-shine.com/producto/mentess/">Test de Exploración Vocacional</a> que él/ella acaba de realizar.</p>
+                <p>El test está diseñado para jóvenes entre los 14 y 24 años de edad y profesionales en cambio de carrera y te proporcionará un análisis completo de tu estilos y atributos, perfil y motivaciones alineandolos con carreras según el mercado actual y futuro</p>
+                <p>¡No dejes pasar esta oportunidad de descubrir tu camino profesional!</p>
+                <p><a href="https://scholar-shine.com/producto/mentess/">Haz el test aquí</a></p>
+            </div>
+            <div class="email-footer">
+                <p>Atentamente,</p>
+                <p>El equipo de Scholar-Shine</p>
+                <img src="' . esc_url($site_logo_url) . '" alt="ScholarShine Logo">
+            </div>
+        </div>
+    </body>
+    </html>
+    ';
+
+    // Establecer los encabezados del correo
+    $headers = array(
+        'Content-Type: text/html; charset=UTF-8',
+        'From: ScholarShine <hola@scholar-shine.com>',
+        'Cc: hola@scholar-shine.com'
+    );
+
+    // Enviar el correo
+    $mail_sent = wp_mail($email, $subject, $message, $headers);
+
+    // Enviar respuesta de éxito o error
+    if ($mail_sent) {
+        echo '¡La invitación fue enviada con éxito!';
+    } else {
+        echo 'Hubo un error al enviar la invitación. Por favor, refresca la pantalla e intenta de nuevo.';
+    }
+
+    wp_die(); // Terminar correctamente el proceso AJAX
+}
+
+add_action('wp_ajax_send_invitation_email', 'mentess_send_invitation_email');
+add_action('wp_ajax_nopriv_send_invitation_email', 'mentess_send_invitation_email');

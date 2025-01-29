@@ -97,8 +97,30 @@
             $html = "
                 <br>
                 <div class='wrap lg-container'>
-                    <h1 class='text-center'>$quiz_title</h1>
+                    <h1 class='text-center' style='color: #3879F1'>$quiz_title</h1>
                     <br>
+
+                    <p>Este cuestionario está diseñado para ayudarte a explorar tu vocación. Responde con sinceridad según tus verdaderas preferencias.
+                    ¡Recuerda, no hay respuestas correctas o incorrectas, solo descubrimientos sobre ti mismo/a!</p>
+
+                    <p><b>Consejos para responder:</b></p>
+                    <ul>
+                    <li>Sé auténtico/a: Responde según tus verdaderos gustos e inclinaciones.</li>
+                    <li>Piensa en lo que disfrutas: Considera lo que te apasiona y te hace sentir motivado/a.</li>
+                    <li>Imagina tu futuro: Visualiza cómo te gustarí­a pasar tu tiempo en el ámbito profesional.</li>
+                    </ul>
+
+                    <p><b>Instrucciones:</b></p>
+                    <ul>
+                    <li>Marca <b>Sí</b> si la afirmación describe algo que realmente disfrutas o te gustarí­a hacer.</li>
+                    <li>Marca <b>No</b> si la afirmación no se ajusta a tus intereses o habilidades.</li>
+                    <li>Marca <b>Tal vez</b> si aóún no estÃ¡s seguro/a o no has pensado en esa situación.</li>
+                    </ul>
+
+                    <p>¡Disfruta del viaje de autoexploración y descubrimiento!</p>
+
+                    <br>
+
                     <form method='POST' class='mb-4'>
                     <input type='hidden' name='quiz_id' value='$quiz_id'>
                     
@@ -334,7 +356,7 @@
 
                 $html_section_begin = "
                     <div>
-                        <h3 style='color: #3879F1'>Sección $order: $name</h3><br>
+                        <h3 style='color: #3879F1'>$name</h3><br>
                 ";
                 $html_section_end = "</div><br>";
 
@@ -385,7 +407,6 @@
                 return false;
             }
         }
-
 
         function save_form($post){
             global $wpdb;
@@ -526,7 +547,7 @@
                     </div>
 
                     <div data-pdf='quiz-title-section'>
-                        <div class='d-flex justify-content-center'>
+                        <div class='d-flex justify-content-center mt-3'>
                             <img id='logo_quiz' class='mx-auto' width='70px' src='" . esc_html($quiz['logo_url']) . "'></img>
                         </div>
                         <h1 class='text-center mt-2 mb-2' style='color: #4275DD;'>$quiz_name</h1>
@@ -603,20 +624,95 @@
                         <hr class="my-4 col-8 mx-auto">
                         <h2 class="text-center">'. $section['name'] .'</h2>
                         <h6 class="text-center">' . $section["description"] . '</h6>
-                        '. ($html_category_winners ? $html_category_winners : $html_backup_winner) .'
                         '. $this->draw_chart($section, $chart_data_labels, $chart_data_values) .'
+                        '. ($html_category_winners ? $html_category_winners : $html_backup_winner) .'
                     </div>
                     ';
                 }
             }
+
             $html_result .= '
             <div>
                 <img id="poster_quiz" class="d-none" src="' . esc_html($quiz['poster_url']) . '"></img>
             </div>
             ';
+
+            $end_doc = $this->write_end_doc();
+            $html_result .= $end_doc;
+
+            $recommend_quiz = $this->recommend_quiz_form($quiz_id);
+            $html_result .= $recommend_quiz;
+
             return $html_result;
         }
 
+        function write_end_doc() {
+            $svg_width = '24px';
+            
+            // Recupera el ID del logo desde la personalización del tema
+            $logo_id = get_theme_mod('custom_logo');
+            
+            // Si hay un logo configurado, obtenemos la URL de la imagen
+            if ($logo_id) {
+                $logo_url = wp_get_attachment_image_url($logo_id, 'full');
+            } else {
+                $logo_url = ''; // Si no hay logo configurado, dejamos la URL vacía
+            }
+            
+            return '
+            <div data-pdf="end-section" class="mt-5">
+                <hr class="my-5 col-8 mx-auto">
+                <h2 class="text-center mb-3" style="color: #467be9">¡Te espera un futuro brillante!</h2>
+                <p>Gracias por confiar en Mentess para explorar tu camino profesional. Este informe combina tus motivaciones, estilos y atributos, y perfiles, reflejando lo que te apasiona, en qué eres realmente bueno/a y las características únicas de tu personalidad.<br><br>
+                Ahora cuentas con una guía que no solo identifica tus áreas de interés, sino también tus fortalezas y cómo puedes aprovecharlas para prosperar en el campo que elijas. Tus motivaciones te inspiran, tus estilos y atributos te ayudan a destacar, y tus perfiles definen cómo puedes enfrentar desafíos y alcanzar tus metas.<br><br>
+                Con esta claridad, estás preparado/a para enfocar tu energía en áreas que realmente resuenen contigo. Esto no solo te permitirá encontrar una carrera que te apasione, sino también marcar la diferencia con tu talento y habilidades únicas.<br><br>
+                ¡El mundo necesita personas como tú!, Sigue adelante con confianza, sabiendo que tienes todo lo necesario para construir un futuro brillante y significativo.</p>
+                <div data-pdf="signature" class="d-flex flex-column gap-2 mt-5 mb-5" style="inline-size: fit-content; justify-self: center;">
+                    <div id="logo-row" class="d-flex justify-content-center">
+                        <img width="150px" src="'. $logo_url .'" alt="Mentess Logo"></img>
+                    </div>
+                    <div id="instragram-row" class="d-flex justify-content-center gap-1">
+                        <svg width="'. $svg_width .'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z"/></svg>
+                        <span>@scholarshine</span>
+                    </div>
+                    <div id="email-row" class="d-flex justify-content-center gap-1">
+                        <svg width="'. $svg_width .'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M64 112c-8.8 0-16 7.2-16 16l0 22.1L220.5 291.7c20.7 17 50.4 17 71.1 0L464 150.1l0-22.1c0-8.8-7.2-16-16-16L64 112zM48 212.2L48 384c0 8.8 7.2 16 16 16l384 0c8.8 0 16-7.2 16-16l0-171.8L322 328.8c-38.4 31.5-93.7 31.5-132 0L48 212.2zM0 128C0 92.7 28.7 64 64 64l384 0c35.3 0 64 28.7 64 64l0 256c0 35.3-28.7 64-64 64L64 448c-35.3 0-64-28.7-64-64L0 128z"/></svg>
+                        <span>hola@scholar-shine.com</span>
+                    </div>
+                    <div id="website-row" class="d-flex justify-content-center gap-1">
+                        <svg width="'. $svg_width .'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M352 256c0 22.2-1.2 43.6-3.3 64l-185.3 0c-2.2-20.4-3.3-41.8-3.3-64s1.2-43.6 3.3-64l185.3 0c2.2 20.4 3.3 41.8 3.3 64zm28.8-64l123.1 0c5.3 20.5 8.1 41.9 8.1 64s-2.8 43.5-8.1 64l-123.1 0c2.1-20.6 3.2-42 3.2-64s-1.1-43.4-3.2-64zm112.6-32l-116.7 0c-10-63.9-29.8-117.4-55.3-151.6c78.3 20.7 142 77.5 171.9 151.6zm-149.1 0l-176.6 0c6.1-36.4 15.5-68.6 27-94.7c10.5-23.6 22.2-40.7 33.5-51.5C239.4 3.2 248.7 0 256 0s16.6 3.2 27.8 13.8c11.3 10.8 23 27.9 33.5 51.5c11.6 26 20.9 58.2 27 94.7zm-209 0L18.6 160C48.6 85.9 112.2 29.1 190.6 8.4C165.1 42.6 145.3 96.1 135.3 160zM8.1 192l123.1 0c-2.1 20.6-3.2 42-3.2 64s1.1 43.4 3.2 64L8.1 320C2.8 299.5 0 278.1 0 256s2.8-43.5 8.1-64zM194.7 446.6c-11.6-26-20.9-58.2-27-94.6l176.6 0c-6.1 36.4-15.5 68.6-27 94.6c-10.5 23.6-22.2 40.7-33.5 51.5C272.6 508.8 263.3 512 256 512s-16.6-3.2-27.8-13.8c-11.3-10.8-23-27.9-33.5-51.5zM135.3 352c10 63.9 29.8 117.4 55.3 151.6C112.2 482.9 48.6 426.1 18.6 352l116.7 0zm358.1 0c-30 74.1-93.6 130.9-171.9 151.6c25.5-34.2 45.2-87.7 55.3-151.6l116.7 0z"/></svg>
+                        <span>www.scholar-shine.com</span>
+                    </div>
+                    <div id="mobile-row" class="d-flex justify-content-center gap-1">
+                        <svg width="'. $svg_width .'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M16 64C16 28.7 44.7 0 80 0L304 0c35.3 0 64 28.7 64 64l0 384c0 35.3-28.7 64-64 64L80 512c-35.3 0-64-28.7-64-64L16 64zM224 448a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zM304 64L80 64l0 320 224 0 0-320z"/></svg>
+                        <span>+(507) 6316-4796</span>
+                    </div>
+                </div>
+            </div>
+            ';
+        }
+        
+        function recommend_quiz_form($quiz_id) {
+            $current_user = wp_get_current_user();
+            $user_name = $current_user->first_name; // Nombre
+            $user_lastname = $current_user->last_name; // Apellido
+
+            return '
+                <section class="share-section" style="background-color: #3879F1;border-radius: 20px;margin: 70px 20px;color: #FFF;text-align: center;padding: 25px;">
+                    <h2 style="color: #fff">¿Te gustó el Test? ¡Compártelo!</h2>
+                    <p style="color: #fff">Ayúdanos a que más personas descubran su vocación. Invita a un amigo, compañero o familiar a realizarlo.</p>
+                    <form class="share-form" method="POST">
+                        <label style="color: #fff" for="email">Ingresa el correo electrónico de tu conocido:</label>
+                        <div style="display: flex;gap: 10px;justify-content: center;flex-flow: wrap;">
+                            <input class="form-control" type="email" id="email" name="email" placeholder="ejemplo@correo.com" required="" style="margin: 10px 0px 10px;max-width: 250px;">
+                            <input type="hidden" name="user_name" value="'. esc_attr($user_name) .'">
+                            <input type="hidden" name="user_lastname" value="'. esc_attr($user_lastname) .'">
+                            <input type="hidden" name="quiz_id" value="'. esc_attr($quiz_id) .'">
+                            <button class="btn" type="submit" style="margin: 9px 0px;background-color: #FFE187;">Enviar</button>
+                        </div>
+                    </form>
+                </section>';
+        }
 
         function get_general_answers($user_quiz_id) {
             global $wpdb;
