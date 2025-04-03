@@ -89,7 +89,7 @@
     if ($results_page) {
         $results_page = get_permalink($results_page[0]->ID);
     } else {
-        $results_page = '#';
+        $results_page = home_url('/resultados-de-la-encuesta/');
     }
 ?>
 
