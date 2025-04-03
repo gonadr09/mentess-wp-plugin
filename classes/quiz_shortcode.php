@@ -566,27 +566,60 @@
         }
 
         // Enviar email a los administradores del sitio web que una encuesta se ha completada y brindar información de la misma
-        function send_new_quiz_completed_email() {
-            // get the admins emails
-            $admins = get_option('admin_email');
+        function send_new_quiz_completed_email($quiz_id, $user_quiz_id) {
+            global $wpdb;
 
-            // Recuperar datos del formulario
-            $email = sanitize_email($_POST['email']);
-            $user_name = sanitize_text_field($_POST['user_name']);
-            $user_lastname = sanitize_text_field($_POST['user_lastname']);
-            $quiz_id = intval($_POST['quiz_id']); // Recuperar el quiz_id desde el input oculto
+            // Obtener correos de los administradores del sitio
+            $admin_emails = [];
+            $admins = get_users(['role' => 'administrator']);
+            foreach ($admins as $admin) {
+                $admin_emails[] = $admin->user_email;
+            }
+            $to = implode(',', $admin_emails); // Convertir el array en una lista separada por comas
         
-            // Recuperar la URL del logo del quiz desde la base de datos
+            // Obtener detalles del quiz
             $quiz = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}lg_quizzes WHERE quiz_id = %d", $quiz_id));
+            $quiz_name = !empty($quiz->title) ? $quiz->title : 'Test Vocacional';
+
+            // Obtener información del usuario, incluyendo email, nombre y apellido en una sola consulta
+            $user_data = $wpdb->get_row($wpdb->prepare("
+                SELECT 
+                    u.user_email,
+                    um_first.meta_value AS first_name,
+                    um_last.meta_value AS last_name
+                FROM {$wpdb->prefix}lg_user_quiz uq
+                INNER JOIN {$wpdb->prefix}users u ON uq.user_id = u.ID
+                LEFT JOIN {$wpdb->prefix}usermeta um_first ON uq.user_id = um_first.user_id AND um_first.meta_key = 'first_name'
+                LEFT JOIN {$wpdb->prefix}usermeta um_last ON uq.user_id = um_last.user_id AND um_last.meta_key = 'last_name'
+                WHERE uq.user_quiz_id = %d
+            ", $user_quiz_id));
+
+            if ($user_data) {
+                // Asignar valores con fallback en caso de estar vacíos
+                $user_name = !empty($user_data->first_name) ? $user_data->first_name : 'Usuario';
+                $user_lastname = !empty($user_data->last_name) ? $user_data->last_name : '';
+                $user_email = !empty($user_data->user_email) ? $user_data->user_email : 'Sin correo';
+            } else {
+                // Si no se encuentra el usuario
+                $user_name = 'Usuario';
+                $user_lastname = '';
+                $user_email = 'Sin correo';
+            }
+
+     
+            // Fecha y hora actual
+            $today = date('d/m/Y H:i');
+        
+            // Recuperar la URL del logo del quiz
             $logo_url = !empty($quiz->logo_url) ? esc_url($quiz->logo_url) : '';
             $logo_img = '<img src="'. esc_url($logo_url) .'" alt="Logo del Test" style="max-width: 60px; height: auto;">';
         
-            // Obtener el logo del sitio web (Scholar-Shine) desde WordPress
+            // Obtener el logo del sitio web
             $site_logo_id = get_theme_mod('custom_logo');
             $site_logo_url = $site_logo_id ? wp_get_attachment_url($site_logo_id) : '';
         
             // Definir el correo y el contenido en HTML
-            $subject = '¡Te invitaron a hacer este Test vocacional!';
+            $subject = '¡Un nuevo usuario ha completado el Test Vocacional!';
             $message = '
             <html>
             <head>
@@ -626,10 +659,11 @@
                         <div class="text-center">' . $logo_img . '</div>
                         <h2 class="text-center">' . esc_html($subject) .'</h2>
                         <p>Hola,</p>
-                        <p><strong>' . esc_html($user_name) . ' ' . esc_html($user_lastname) . '</strong> te invita a realizar el <a href="https://scholar-shine.com/producto/mentess/">Test de Exploración Vocacional</a> que él/ella acaba de realizar.</p>
-                        <p>El test está diseñado para jóvenes entre los 14 y 24 años de edad y profesionales en cambio de carrera y te proporcionará un análisis completo de tu estilos y atributos, perfil y motivaciones alineandolos con carreras según el mercado actual y futuro</p>
-                        <p>¡No dejes pasar esta oportunidad de descubrir tu camino profesional!</p>
-                        <p><a href="https://scholar-shine.com/producto/mentess/">Haz el test aquí</a></p>
+                        <p>Un nuevo usuario acaba de completar el Test Vocacional <strong>' . esc_html($quiz_name) . '</strong>:</p>
+                        <p>Nombre y apellido: <strong>' . esc_html($user_name) . ' ' . esc_html($user_lastname) . '</strong></p>
+                        <p>Correo electrónico: <strong>' . esc_html($user_email) . '</strong></p>
+                        <p>Día y horario: <strong> ' . esc_html($today) . ' </strong></p><br>
+                        <p>Ingresa al sitio web como administrador para ver los resultados haciendo <a href="https://scholar-shine.com/wp-admin/admin.php?page=user_quiz_list">click aquí</a></p>
                     </div>
                     <div class="email-footer">
                         <p>Atentamente,</p>
@@ -644,21 +678,13 @@
             // Establecer los encabezados del correo
             $headers = array(
                 'Content-Type: text/html; charset=UTF-8',
-                'From: ScholarShine <hola@scholar-shine.com>',
-                'Cc: hola@scholar-shine.com'
+                'From: ScholarShine <hola@scholar-shine.com>'
             );
         
             // Enviar el correo
-            $mail_sent = wp_mail($email, $subject, $message, $headers);
-        
-            // Enviar respuesta de éxito o error
-            if ($mail_sent) {
-                echo '¡La invitación fue enviada con éxito!';
-            } else {
-                echo 'Hubo un error al enviar la invitación. Por favor, refresca la pantalla e intenta de nuevo.';
-            }
-        
-            wp_die(); // Terminar correctamente el proceso AJAX
+            $mail_sent = wp_mail($to, $subject, $message, $headers);
+
+            return $mail_sent;
         }
 
 
